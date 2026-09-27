@@ -14,19 +14,16 @@ const EP5_SEASON_SUMMARY: InfernoSeasonSummary = {
     profile: {
       type: 'donut',
       name: '차가운 도넛 반죽',
-      attachmentLabel: '안정형',
     },
-    summaryLine: '이 시즌, 당신의 분신은 안정형 성향과 이어졌어요',
+    summaryLine: '이 시즌, 당신의 분신은 진짜 인연을 만났어요',
   },
   report: {
-    summary: '사용자는 적극적으로 호감을 표현하지만 갈등 상황에서는 회피하는 경향이 있습니다.',
-    strength: ['높은 공감 능력', '적극적인 대화'],
-    weakness: ['갈등 회피 성향'],
-    advice: '상대방과 감정을 솔직하게 공유하는 연습이 필요합니다.',
+    narrative:
+      '사용자는 적극적으로 호감을 표현하지만 갈등 상황에서는 회피하는 경향이 있습니다. 상대방과 감정을 솔직하게 공유하는 연습이 필요합니다.',
   },
   highlights: [
-    { episodeId: 3, title: '첫 번째 갈등', summary: '상대방의 연락이 늦어지면서 사용자가 먼저 연락했습니다.', importance: 92 },
-    { episodeId: 5, title: '예상하지 못한 선택', summary: '사용자가 상대방의 선택과 반대되는 행동을 했습니다.', importance: 87 },
+    { text: '상대방의 연락이 늦어지면서 사용자가 먼저 연락했습니다.' },
+    { text: '사용자가 상대방의 선택과 반대되는 행동을 했습니다.' },
   ],
 };
 

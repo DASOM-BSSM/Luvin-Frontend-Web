@@ -1,31 +1,22 @@
-import type { AiReportView, AiSeasonStatusView } from '@/src/features/inferno/api/ai-season-types';
-import type { SimulationHighlightView, SimulationReportView } from '@/src/features/inferno/api/simulation-types';
+import type { AiHighlightView, AiReportView, AiSeasonStatusView } from '@/src/features/inferno/api/ai-season-types';
 import type { InfernoFinalMatchResult, InfernoHighlight, InfernoSeasonReport } from '@/src/features/inferno/types';
 import { deriveCharacterPersona } from '@/src/features/inferno/utils/character-persona';
 
-/** `GET /api/simulation/report` 응답을 화면이 쓰는 모양으로 바꾼다. 지금은 필드가 1:1이라 그대로 옮기기만 한다. */
-export function mapSimulationReport(report: SimulationReportView): InfernoSeasonReport {
-  return {
-    summary: report.summary,
-    strength: report.strength,
-    weakness: report.weakness,
-    advice: report.advice,
-  };
+/** `GET /api/ai/seasons/report`의 `narrative`를 화면이 쓰는 모양으로 바꾼다(§ types.ts 주석 참고). */
+export function mapAiReport(report: AiReportView): InfernoSeasonReport {
+  return { narrative: report.narrative };
 }
 
 /**
- * `GET /api/simulation/highlights` 응답을 화면이 쓰는 모양으로 바꾸고, 중요도(`importance`)
- * 높은 순으로 정렬한다 — 화면(inferno-highlight-scene.tsx)은 이 순서를 그대로 보여준다.
+ * `GET /api/ai/seasons/report`의 `highlights`를 화면이 쓰는 모양으로 바꾼다.
+ *
+ * 백엔드 확인 완료 — `title`/`summary` 같은 카드형이 아니라 `AiHighlightView`(1:1 대화 중
+ * 인상 깊었던 한 줄 `text`와 그 메시지를 가리키는 `messageId`)다. "제목+요약" 카드가 아니라
+ * 대화에서 뽑은 인용구 한 줄이라는 뜻이라, 억지로 title/summary로 쪼개지 않고 `text` 그대로
+ * 인용구 하나로 보여준다.
  */
-export function mapSimulationHighlights(highlights: SimulationHighlightView[]): InfernoHighlight[] {
-  return [...highlights]
-    .sort((a, b) => b.importance - a.importance)
-    .map((highlight) => ({
-      episodeId: highlight.episodeId,
-      title: highlight.title,
-      summary: highlight.summary,
-      importance: highlight.importance,
-    }));
+export function mapAiHighlights(highlights: AiHighlightView[]): InfernoHighlight[] {
+  return highlights.map((highlight) => ({ text: highlight.text }));
 }
 
 /**
@@ -45,7 +36,7 @@ export function mapFinalMatchFromReport(
   const persona = deriveCharacterPersona(character.characterId);
 
   return {
-    profile: { type: persona.type, name: persona.name, attachmentLabel: character.personality },
-    summaryLine: `이 시즌, 당신의 분신은 ${character.personality} 성향과 이어졌어요`,
+    profile: { type: persona.type, name: persona.name },
+    summaryLine: '이 시즌, 당신의 분신은 진짜 인연을 만났어요',
   };
 }

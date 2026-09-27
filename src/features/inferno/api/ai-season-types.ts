@@ -22,8 +22,6 @@ export interface AiTraitsRequest {
 
 export interface AiCharacterProfileRequest {
   gender: string;
-  adultAge: number;
-  personality: string;
   traits: AiTraitsRequest;
 }
 
@@ -35,8 +33,6 @@ export interface AiCharacterView {
    */
   role: string;
   gender: string;
-  adultAge: number;
-  personality: string;
 }
 
 export interface AiSeasonStatusView {
@@ -90,10 +86,16 @@ export interface AiSelectionView {
   revision: number;
 }
 
+/** `GET /api/ai/seasons/report`의 `highlights` 배열 원소 하나. */
+export interface AiHighlightView {
+  messageId: string;
+  text: string;
+}
+
 /** `GET /api/ai/seasons/report`. */
 export interface AiReportView {
   finalPartnerId: string;
-  highlights: Record<string, string>[];
+  highlights: AiHighlightView[];
   narrative: string;
   renderMode: string;
 }

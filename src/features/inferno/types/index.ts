@@ -181,55 +181,49 @@ export interface InfernoConversation {
  */
 
 /**
- * 최종 매칭 상대 프로필. Figma 에 없는 "애착유형" 라벨은 캐릭터 성향값이다.
+ * 최종 매칭 상대 프로필.
  *
  * `state` 가 없는 이유: 이 화면은 매칭 상대와 내 반죽을 personDough(팔다리 있는 반죽)로
  * 나란히 보여주는 "매칭 성사" 장면이라 `InfernoPersonalChatSidebar`와 같은 이유로 항상
  * personDough 로 고정한다 — 회차 대화 데이터의 dough/baked 상태와는 무관하다.
+ *
+ * 예전엔 "애착유형" 라벨(`attachmentLabel`)도 있었는데, `AiCharacterView`에 그런 성향
+ * 필드가 없다는 게 최신 openapi로 확인돼서 걷어냈다(Figma에도 없던 값이라 손실 없음).
  */
 export interface InfernoFinalMatchProfile {
   type: BreadType;
   name: string;
-  /** 애착유형 같은 성향 라벨. 예: "안정형" */
-  attachmentLabel: string;
 }
 
 export interface InfernoFinalMatchResult {
   profile: InfernoFinalMatchProfile;
   /**
-   * "이 시즌, 당신의 분신은 안정형 성향과 이어졌어요" 같은 한 줄 요약.
+   * "이 시즌, 당신의 분신은 진짜 인연을 만났어요" 같은 한 줄 요약.
    *
-   * 조사(과/와)가 붙는 조합 규칙을 코드로 만들지 않고 문구를 데이터가 완성된 문장으로
-   * 그대로 들고 있는다 — 잘못된 조사 조합을 지어내지 않기 위함(§13과 같은 취지).
+   * 조사가 붙는 조합 규칙을 코드로 만들지 않고 문구를 데이터가 완성된 문장으로 그대로
+   * 들고 있는다 — 잘못된 조사 조합을 지어내지 않기 위함(§13과 같은 취지).
    */
   summaryLine: string;
 }
 
 /**
- * `GET /api/simulation/report` 응답 그대로의 모양 — 성향별 수치나 다시굽기 사용 여부가
- * 아니라 강점/약점/조언 텍스트로 온다(예전에 있던 `InfernoBehaviorMetric`/
- * `InfernoRebakeUsage`/`InfernoEngagementStats`는 실제 응답에 없어서 걷어냈다).
+ * `GET /api/ai/seasons/report`의 `narrative`. 예전엔 `/api/simulation/report`(강점/약점/
+ * 조언 텍스트)를 썼는데, 백엔드 확인 완료 — AI 시즌 계정은 `simulation_reports`에 애초에
+ * 행이 안 생겨서 그 엔드포인트가 영영 404다. `ai/seasons/report`의 `narrative`/`highlights`
+ * 로 완전히 대체됐다(레거시 `/api/simulation/*`는 AI 시즌에서 호출하지 않는다).
  */
 export interface InfernoSeasonReport {
-  summary: string;
-  strength: string[];
-  weakness: string[];
-  advice: string;
+  narrative: string;
 }
 
 /**
- * 지난 회차 하이라이트 한 장. `GET /api/simulation/highlights` 응답 그대로의 모양이다.
+ * 지난 회차 하이라이트 한 장. `GET /api/ai/seasons/report`의 `highlights`에서 뽑는다.
  *
- * `episodeId`는 우리 쪽 회차 순서(1~4)와 같은 값이라는 보장이 없다(예시 응답에 5도 나온
- * 적 있음 — 우리 시즌엔 회차가 4개뿐이라 다른 채번 체계로 보인다). 그래서 화면에서
- * episodeId로 회차 번호 배지를 만들지 않고, `title`/`summary`를 그대로 보여준다.
+ * "제목+요약" 카드가 아니라 1:1 대화 중 인상 깊었던 한 줄을 그대로 인용한 것이다(실기기
+ * 확인: 실제 키는 `text`/`message_id`다 — map-ai-season-report.ts의 `mapAiHighlights` 참고).
  */
 export interface InfernoHighlight {
-  episodeId: number;
-  title: string;
-  summary: string;
-  /** 정렬용 중요도 점수. 화면에 숫자로 노출하지 않고 정렬 기준으로만 쓴다. */
-  importance: number;
+  text: string;
 }
 
 export interface InfernoSeasonSummary {
