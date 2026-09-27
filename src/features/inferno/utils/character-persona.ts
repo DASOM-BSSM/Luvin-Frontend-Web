@@ -30,16 +30,21 @@ const ADJECTIVES = [
   '쫀쫀한',
 ] as const;
 
-const BREAD_TYPE_NOUN: Record<BreadType, string> = {
-  salt: '소금빵 반죽',
-  castella: '카스테라 반죽',
-  donut: '도넛 반죽',
-  pretzel: '프레첼 반죽',
-  baguette: '바게트 반죽',
-  cream: '크림빵 반죽',
-  redbean: '팥빵 반죽',
-  madeleine: '마들렌 반죽',
+/** "반죽"이 안 붙은 빵 종류 이름만. */
+const BREAD_FLAVOR_NAME: Record<BreadType, string> = {
+  salt: '소금빵',
+  castella: '카스테라',
+  donut: '도넛',
+  pretzel: '프레첼',
+  baguette: '바게트',
+  cream: '크림빵',
+  redbean: '팥빵',
+  madeleine: '마들렌',
 };
+
+const BREAD_TYPE_NOUN: Record<BreadType, string> = Object.fromEntries(
+  Object.entries(BREAD_FLAVOR_NAME).map(([type, flavor]) => [type, `${flavor} 반죽`]),
+) as Record<BreadType, string>;
 
 const BREAD_TYPES = Object.keys(BREAD_TYPE_NOUN) as BreadType[];
 
@@ -69,10 +74,24 @@ export function deriveCharacterPersona(characterId: string): CharacterPersona {
 }
 
 /**
+ * 같은 형용사 풀에서, 임의의 seed(예: 설문 결과 ID)에 대해 항상 같은 형용사 하나를 고른다.
+ * "내 반죽" 이름에도 캐릭터와 같은 규칙(형용사 + 반죽 종류)을 적용하는 데 쓴다
+ * (map-bread-result.ts 참고) — 서버 displayName엔 형용사가 없어서 여기서 붙인다.
+ */
+export function deriveAdjective(seed: string): string {
+  return ADJECTIVES[hashString(seed) % ADJECTIVES.length];
+}
+
+/**
  * 형용사 없는 "{반죽 종류} 반죽" 만 돌려준다. 매칭 결과 쪽지의 버튼 문구(예: "도넛 반죽과
  * 오븐 가기")처럼 조사가 이름 뒤에 바로 붙어야 하는 자리에 쓴다 — 모든 값이 "반죽"으로
  * 끝나 받침이 있으므로 "과" 조사를 그대로 붙여도 항상 맞다.
  */
 export function getBreadTypeNoun(type: BreadType): string {
   return BREAD_TYPE_NOUN[type];
+}
+
+/** "반죽"도 형용사도 없는 빵 종류 이름만. 예: "소금빵". */
+export function getBreadFlavorName(type: BreadType): string {
+  return BREAD_FLAVOR_NAME[type];
 }

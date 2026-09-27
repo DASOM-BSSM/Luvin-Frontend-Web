@@ -5,9 +5,9 @@ import type { SimulationHighlightView, SimulationReportView } from '@/src/featur
 /**
  * `GET /api/simulation/report`, `GET /api/simulation/highlights`.
  *
- * `ai-season.ts`의 다른 엔드포인트와 달리 `ApiEnvelope<T>` 래퍼(`{success, data, message}`)를
- * 쓰는지 확인되지 않았다 — 전달받은 응답 예시가 최상위에 바로 이 모양이라 그대로 가정했다.
- * 실제로 감싸져 있으면 아래 두 함수에서 `.data.data`로 한 번 더 벗겨야 한다.
+ * 백엔드 확인 완료 — `ai-season.ts`의 다른 엔드포인트(`com.luvin.ai.*`, 항상
+ * `ApiEnvelope<T>`로 감쌈)와 달리 이 둘은 `com.luvin.simulation` 패키지 소속이라
+ * 래퍼 없이 최상위에 데이터가 그대로 온다.
  */
 export async function getSimulationReport(): Promise<SimulationReportView> {
   const { data } = await httpClient.get<SimulationReportView>('/api/simulation/report');

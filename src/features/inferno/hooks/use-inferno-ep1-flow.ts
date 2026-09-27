@@ -7,6 +7,9 @@ import type { InfernoConversation } from '@/src/features/inferno/types';
 /** 지금 떠 있는 모달. 없으면 undefined. */
 export type InfernoEp1Modal = 'vote' | 'done';
 
+/** 서버 에러를 그대로 보여주지 않는다(§11) — 원인과 무관하게 재시도를 유도하는 한 가지 문구만 쓴다. */
+const SUBMIT_ERROR_MESSAGE = '투표 결과를 보내지 못했어요. 다시 시도해주세요.';
+
 interface InfernoEp1Flow {
   /**
    * 회차 안에서 지금 어디까지 왔는지. 대화 쪽이 0..n-1, 투표지가 n 이다.
@@ -19,6 +22,10 @@ interface InfernoEp1Flow {
   openModal?: InfernoEp1Modal;
   /** 아직 고르지 않았으면 undefined. */
   selectedId?: string;
+  /** 투표 제출 요청이 오가는 중인지. 버튼을 잠그고 문구를 바꾸는 데 쓴다. */
+  isSubmitting: boolean;
+  /** 마지막 제출이 실패했을 때 보여줄 문구. 성공하거나 아직 안 눌렀으면 undefined. */
+  submitError?: string;
   goPrevious?: () => void;
   goNext?: () => void;
   handlePageDone: () => void;
@@ -50,6 +57,8 @@ export default function useInfernoEp1Flow(
   const [openModal, setOpenModal] = useState<InfernoEp1Modal | undefined>(undefined);
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [isLastPageTyped, setIsLastPageTyped] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | undefined>(undefined);
 
   const pageCount = conversation?.pages.length ?? 0;
   const lastPageIndex = Math.max(pageCount - 1, 0);
@@ -89,6 +98,7 @@ export default function useInfernoEp1Flow(
 
   function handleSelect(participantId: string) {
     setSelectedId(participantId);
+    setSubmitError(undefined);
   }
 
   /**
@@ -96,14 +106,28 @@ export default function useInfernoEp1Flow(
    *
    * NOTE: 고르지 않고 누르면 아무 일도 하지 않는다. 시안에 비활성 버튼도 경고 문구도 없어서
    * 없는 디자인을 지어내지 않았다. 상태 디자인이 나오면 여기에 붙일 것(§11).
+   *
+   * 요청이 오가는 동안 버튼을 잠근다(중복 제출 방지) — 완료 모달은 서버가 실제로 받았다고
+   * 확인해 준 뒤에만 연다. 실패하면 모달을 열지 않고 같은 자리에서 다시 누를 수 있게 둔다.
+   * 아직 전역 토스트가 없어서(§11, `src/providers/toast-provider.tsx` 미구현) 우선 이
+   * 화면 안에서만 문구로 보여준다.
    */
-  function handleSubmit() {
-    if (!conversation || !selectedId) {
+  async function handleSubmit() {
+    if (!conversation || !selectedId || isSubmitting) {
       return;
     }
 
-    submitEpisode1Selection(selectedId);
-    setOpenModal('done');
+    setSubmitError(undefined);
+    setIsSubmitting(true);
+
+    try {
+      await submitEpisode1Selection(selectedId);
+      setOpenModal('done');
+    } catch {
+      setSubmitError(SUBMIT_ERROR_MESSAGE);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   // 쪽을 옮기면 타자가 처음부터 다시 시작하므로 "마지막 줄까지 쳤다" 도 같이 되돌린다.
@@ -150,6 +174,8 @@ export default function useInfernoEp1Flow(
     isBallotOpen,
     openModal,
     selectedId,
+    isSubmitting,
+    submitError,
     goPrevious: resolveGoPrevious(),
     goNext: resolveGoNext(),
     handlePageDone,

@@ -1,10 +1,9 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
 
-import Text from '@/src/components/ui/text';
 import InfernoCardFlipScene from '@/src/features/inferno/components/inferno-cardflip-scene';
 import InfernoChatScene from '@/src/features/inferno/components/inferno-chat-scene';
 import InfernoEpisodeFrame from '@/src/features/inferno/components/inferno-episode-frame';
+import InfernoEpisodeStatus from '@/src/features/inferno/components/inferno-episode-status';
 import InfernoMiniGameScene from '@/src/features/inferno/components/inferno-minigame-scene';
 import InfernoNoteModal from '@/src/features/inferno/components/inferno-note-modal';
 import InfernoVoteScene from '@/src/features/inferno/components/inferno-vote-scene';
@@ -26,7 +25,8 @@ export default function InfernoEp3Screen() {
   const completeEpisode = useInfernoStore((state) => state.completeEpisode);
 
   const episode = findInfernoEpisode(EPISODE_ORDER);
-  const { conversation, isLoading, isError } = useInfernoConversation(EPISODE_ORDER);
+  const { conversation, isLoading, isError, hasGenerationFailed, retryGeneration } =
+    useInfernoConversation(EPISODE_ORDER);
   const flow = useInfernoEp3Flow(conversation);
 
   function finishEpisode() {
@@ -51,11 +51,12 @@ export default function InfernoEp3Screen() {
   if (!episode || !conversation || !conversation.vote) {
     return (
       <InfernoEpisodeFrame episode={episode ?? { order: EPISODE_ORDER, title: '' }} surface="plain" skipLabel="잠시 나가기" onSkipPress={handleExitPress}>
-        <View className="flex-1 items-center justify-center px-[30px]">
-          <Text variant="body-m" className="text-center text-default-black">
-            {isError ? '대화를 불러오지 못했어요' : isLoading ? 'AI가 대화를 만들고 있어요...' : '대화가 아직 없어요'}
-          </Text>
-        </View>
+        <InfernoEpisodeStatus
+          isError={isError}
+          isLoading={isLoading}
+          hasGenerationFailed={hasGenerationFailed}
+          onRetry={retryGeneration}
+        />
       </InfernoEpisodeFrame>
     );
   }

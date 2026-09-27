@@ -87,18 +87,11 @@ export default function MyPageScreen() {
                       </Text>
                     </Pressable>
                   ) : (
-                    <>
-                      <Text variant="heading-h4" className="text-text-primary">
-                        {myProfileQuery.data.nickname}
-                      </Text>
-                      {/* canonical personalityType(예: "red_bean_bread")은 그대로 노출하지
-                          않는다(FRONTEND_CHANGES.md §6) — 설문 결과의 한국어 표시명을 쓴다. */}
-                      {profile ? (
-                        <Text variant="body-s" className="text-text-primary">
-                          {profile.name}
-                        </Text>
-                      ) : null}
-                    </>
+                    // "내 프로필"엔 닉네임만 — 반죽 이름은 아래 "내 분신" 카드에서만 보여준다
+                    // (사용자 확인: 여기 중복 노출 금지).
+                    <Text variant="heading-h4" className="text-text-primary">
+                      {myProfileQuery.data.nickname}
+                    </Text>
                   )}
                 </View>
                 <Button

@@ -8,6 +8,8 @@ import type { InfernoParticipant } from '@/src/features/inferno/types';
 
 /** Figma 5452:2834 의 버튼 문구. */
 const ACTION_LABEL = '투표하기';
+/** 제출 요청이 오가는 동안 버튼에 보여줄 문구. 시안에 없는 상태라 최소한으로만 바꾼다. */
+const SUBMITTING_LABEL = '투표하는 중...';
 
 interface InfernoVoteSceneProps {
   /** 쪽지 맨 위 분홍 글자. 기본은 'VOTE'(Figma 5452:2750). 다시 굽기 투표지는 'REBAKE'. */
@@ -17,6 +19,10 @@ interface InfernoVoteSceneProps {
   options: InfernoParticipant[];
   /** 아직 고르지 않았으면 undefined. */
   selectedId?: string;
+  /** 제출 요청이 오가는 중인지. 버튼을 잠그고 문구를 바꾼다. */
+  isSubmitting?: boolean;
+  /** 마지막 제출이 실패했을 때 버튼 아래 보여줄 문구. */
+  errorMessage?: string;
   onSelect: (participantId: string) => void;
   onSubmit: () => void;
 }
@@ -34,6 +40,8 @@ export default function InfernoVoteScene({
   message,
   options,
   selectedId,
+  isSubmitting = false,
+  errorMessage,
   onSelect,
   onSubmit,
 }: InfernoVoteSceneProps) {
@@ -48,7 +56,19 @@ export default function InfernoVoteScene({
             {message}
           </Text>
         </View>
-        <Button label={ACTION_LABEL} variant="notice" onPress={onSubmit} />
+        <View className="w-full flex-col items-center gap-[8px]">
+          <Button
+            label={isSubmitting ? SUBMITTING_LABEL : ACTION_LABEL}
+            variant="notice"
+            disabled={isSubmitting}
+            onPress={onSubmit}
+          />
+          {errorMessage ? (
+            <Text variant="body-xs" className="text-center text-state-error">
+              {errorMessage}
+            </Text>
+          ) : null}
+        </View>
       </View>
 
       <View className="w-[300px] flex-col items-start gap-[24px]">

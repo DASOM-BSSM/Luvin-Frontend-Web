@@ -9,14 +9,18 @@ import Button from '@/src/components/ui/button';
 import Screen from '@/src/components/ui/screen';
 import Text from '@/src/components/ui/text';
 import useLogout from '@/src/features/auth/hooks/use-logout';
+import { useBreadStore } from '@/src/features/bread/store/bread-store';
+import { useInfernoStore } from '@/src/features/inferno/store/inferno-store';
 import GenderSelectButton from '@/src/features/my-page/components/gender-select-button';
 import NicknameEditField from '@/src/features/my-page/components/nickname-edit-field';
 import { useProfileSettingsStore } from '@/src/features/my-page/store/profile-settings-store';
 import type { Gender } from '@/src/features/my-page/types';
+import { useSurveyStore } from '@/src/features/survey/store/survey-store';
 import { useTokenStore } from '@/src/features/luvin-hell/store/token-store';
 import useTokenBalance from '@/src/features/tokens/hooks/use-token-balance';
 import useMyProfile from '@/src/features/user/hooks/use-my-profile';
 import useUpdateProfile from '@/src/features/user/hooks/use-update-profile';
+import queryClient from '@/src/lib/query-client';
 
 /**
  * 내 정보 자세히 보기/수정. Figma "내 정보 수정-미수"(6300:8004).
@@ -98,6 +102,25 @@ export default function MyPageEditScreen() {
     Alert.alert('계정 탈퇴', '정말 계정을 탈퇴하시겠어요? 이 작업은 되돌릴 수 없어요.', [
       { text: '취소', style: 'cancel' },
       { text: '탈퇴', style: 'destructive', onPress: () => router.replace('/onboarding') },
+    ]);
+  }
+
+  // TEMP DEBUG(러빈지옥 로컬 진행 상태 초기화 — 백엔드가 계정의 AI 시즌을 리셋해준 뒤,
+  // 반죽 만드는 것부터 다시 테스트할 때 씀). 확인 끝나면 지울 것.
+  function handleDebugResetInfernoProgress() {
+    Alert.alert('[DEV] 러빈지옥 초기화', '완료 기록/이어보기 자리를 로컬에서 지워요. 계속할까요?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '초기화',
+        style: 'destructive',
+        onPress: () => {
+          useInfernoStore.getState().resetProgress();
+          useBreadStore.getState().clear();
+          useSurveyStore.getState().resetSurvey();
+          queryClient.clear();
+          router.replace('/');
+        },
+      },
     ]);
   }
 
@@ -206,6 +229,13 @@ export default function MyPageEditScreen() {
               계정 탈퇴
             </Text>
           </Pressable>
+          {__DEV__ ? (
+            <Pressable accessibilityRole="button" onPress={handleDebugResetInfernoProgress}>
+              <Text variant="body-s" className="text-state-error">
+                [DEV] 러빈지옥 초기화
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </ScrollView>
 

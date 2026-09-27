@@ -1,10 +1,9 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
 
-import Text from '@/src/components/ui/text';
 import InfernoChatScene from '@/src/features/inferno/components/inferno-chat-scene';
 import InfernoEp2Modals from '@/src/features/inferno/components/inferno-ep2-modals';
 import InfernoEpisodeFrame from '@/src/features/inferno/components/inferno-episode-frame';
+import InfernoEpisodeStatus from '@/src/features/inferno/components/inferno-episode-status';
 import InfernoFeedbackScene from '@/src/features/inferno/components/inferno-feedback-scene';
 import InfernoPersonalChatScene from '@/src/features/inferno/components/inferno-personal-chat-scene';
 import useInfernoConversation from '@/src/features/inferno/hooks/use-inferno-conversation';
@@ -39,7 +38,8 @@ export default function InfernoEp2Screen() {
   const initialStep = useInfernoStore((state) => state.checkpoints[EPISODE_ORDER]) ?? 0;
 
   const episode = findInfernoEpisode(EPISODE_ORDER);
-  const { conversation, isLoading, isError } = useInfernoConversation(EPISODE_ORDER);
+  const { conversation, isLoading, isError, hasGenerationFailed, retryGeneration } =
+    useInfernoConversation(EPISODE_ORDER);
   const flow = useInfernoEp2Flow(conversation, initialStep);
 
   function finishEpisode() {
@@ -56,24 +56,33 @@ export default function InfernoEp2Screen() {
   // matchReveal/personalChatPages/feedbackTopics 는 매칭 회차 데이터가 갖춰지면 한꺼번에
   // 채워진다(map-ai-episode.ts). AI가 아직 대화를 안 만들었거나 실패했으면 빈 화면 대신
   // 안내를 보여준다(§11, ep1 과 같은 이유).
+  //
+  // pages.length도 같이 본다 — isEpisodeFullyGenerated는 매칭 회차에서 1:1 대화(one_to_one)
+  // 존재만 확인하고 전체대화(group)는 안 보기 때문에, matchReveal 등은 다 갖춰졌는데 group
+  // 메시지만 아직 비어 있는 경우가 실제로 생긴다. 그 상태에서 phase가 아직 'group'이면
+  // 아래 `conversation.pages[0]`이 undefined라 화면이 그대로 크래시한다(실기기에서 확인된
+  // 버그: "Cannot read property 'messages' of undefined").
   if (
     !episode ||
     !conversation ||
     !conversation.matchReveal ||
     !conversation.personalChatPages ||
-    !conversation.feedbackTopics
+    !conversation.feedbackTopics ||
+    conversation.pages.length === 0
   ) {
     return (
       <InfernoEpisodeFrame episode={episode ?? { order: EPISODE_ORDER, title: '' }} surface="plain" skipLabel="잠시 나가기" onSkipPress={handleExitPress}>
-        <View className="flex-1 items-center justify-center px-[30px]">
-          <Text variant="body-m" className="text-center text-default-black">
-            {isError ? '대화를 불러오지 못했어요' : isLoading ? 'AI가 대화를 만들고 있어요...' : '대화가 아직 없어요'}
-          </Text>
-        </View>
+        <InfernoEpisodeStatus
+          isError={isError}
+          isLoading={isLoading}
+          hasGenerationFailed={hasGenerationFailed}
+          onRetry={retryGeneration}
+        />
       </InfernoEpisodeFrame>
     );
   }
 
+  const groupPage = conversation.pages[flow.groupPageIndex];
   const personalPage = conversation.personalChatPages[flow.personalPageIndex];
 
   return (
@@ -87,8 +96,10 @@ export default function InfernoEp2Screen() {
       onSkipPress={handleExitPress}
     >
       {flow.phase === 'group' ? (
+        // 쪽이 바뀌면 타자를 처음부터 다시 치도록 key 로 갈아 끼운다(ep1 과 같은 이유).
         <InfernoChatScene
-          page={conversation.pages[0]}
+          key={groupPage.id}
+          page={groupPage}
           participants={conversation.participants}
           onPageDone={flow.handleLineDone}
         />

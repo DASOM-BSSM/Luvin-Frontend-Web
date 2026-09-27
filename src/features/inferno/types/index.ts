@@ -235,10 +235,9 @@ export interface InfernoHighlight {
 export interface InfernoSeasonSummary {
   episodeOrder: number;
   /**
-   * 최종 매칭 상대 정보. `GET /api/simulation/report`엔 이 정보가 없어서, 시즌의 마지막
-   * 매칭 회차인 ep4 데이터에서 뽑는다(map-ai-season-report.ts 의 `mapFinalMatchFromEp4`).
-   * "다시 굽기"가 아직 연동 전이라, 유저가 ep4에서 다시 굽기를 썼으면 그 이후 상대가 아니라
-   * 다시 굽기 전 매칭 상대가 나오는 한계가 있다.
+   * 최종 매칭 상대 정보. `GET /api/ai/seasons/report`의 `finalPartnerId`에서 뽑는다
+   * (map-ai-season-report.ts 의 `mapFinalMatchFromReport`) — "다시 굽기"로 상대가 바뀐
+   * 경우까지 반영된 값이다(백엔드 확인 완료).
    */
   finalMatch: InfernoFinalMatchResult;
   report: InfernoSeasonReport;

@@ -13,24 +13,59 @@ import Screen from "@/src/components/ui/screen";
 import SectionHeader from "@/src/components/ui/section-header";
 import Text from "@/src/components/ui/text";
 import { pink } from "@/src/constants/colors";
+import useBreadProfile from "@/src/features/bread/hooks/use-bread-profile";
 import EpisodeThumbnailCard from "@/src/features/home/components/episode-thumbnail-card";
-import type { WeeklyEpisode } from "@/src/features/home/types";
+import type { BreadProfile, WeeklyEpisode } from "@/src/features/home/types";
+import { formatEpisodeLabel } from "@/src/features/home/utils/format-episode";
+import useAiSeasonStatus from "@/src/features/inferno/hooks/use-ai-season-status";
+import { getBreadFlavorName } from "@/src/features/inferno/utils/character-persona";
+import { findInfernoEpisode } from "@/src/features/inferno/utils/episodes";
 import { sceneColors } from "@/src/features/luvin-hell/constants/scene-colors";
 import { LANE_ROTATION_DEG } from "@/src/features/luvin-hell/games/bread-crossing/engine/constants";
 import { useTokenStore } from "@/src/features/luvin-hell/store/token-store";
 import useTokenBalance from "@/src/features/tokens/hooks/use-token-balance";
 import EpisodeHistoryRow from "@/src/features/oven/components/episode-history-row";
 
-// API 연동 전. 시안(6263:5920)의 값을 그대로 넣어 뒀다.
-const CURRENT_EPISODE: WeeklyEpisode = {
-  order: 3,
-  title: "미니게임으로 사랑을 쟁취하세요!",
-};
+interface PastEpisodePreview {
+  label: string;
+  body: string;
+}
 
-const PAST_EPISODES = [
-  { label: "Episode 02", body: "우리 조금 잘 맞는 것 같아요" },
-  { label: "Episode 01", body: "안녕하세요 소금빵입니다!" },
-];
+/** ep1 은 회차 대본과 무관하게 "안녕하세요 {유저 반죽}입니다!"로 고정한다(사용자 지정). */
+const GREETING_EPISODE_ORDER = 1;
+
+function buildGreetingTitle(myProfile: BreadProfile): string {
+  return `안녕하세요 ${getBreadFlavorName(myProfile.type)}입니다!`;
+}
+
+/**
+ * 회차 한 편의 제목 문구. ep0/3/5는 고정 문구(INFERNO_EPISODES)를 그대로 쓰고, ep1은
+ * 유저의 실제 반죽으로 인사말을 만든다. **ep2/ep4는 아직 미확정** — "사용자가 하트를 누른
+ * 대화"를 보여줘야 하는데, 그 하트가 데이터에 미리 박힌 장식(`showHeart`)인지 유저가 직접
+ * 누르는 상호작용인지 확인 전이라 일단 고정 문구를 그대로 둔다(사용자 확인 대기).
+ */
+function resolveEpisodeTitle(order: number, myProfile: BreadProfile): string | undefined {
+  if (order === GREETING_EPISODE_ORDER) {
+    return buildGreetingTitle(myProfile);
+  }
+
+  return findInfernoEpisode(order)?.title;
+}
+
+/**
+ * 진행 중인 회차 카드에 쓸 값. `useInfernoStore.completedOrders`의 원래 주석대로
+ * ("API 가 생기면 이 저장은 서버 상태로 대체될 자리") `AiSeasonStatusView.currentEpisode`가
+ * 그 서버 상태다 — 회차 번호는 서버 값을 쓰고, 제목은 위 `resolveEpisodeTitle`이 정한다.
+ */
+function toWeeklyEpisode(order: number, myProfile: BreadProfile): WeeklyEpisode | undefined {
+  const title = resolveEpisodeTitle(order, myProfile);
+  return title ? { order, title } : undefined;
+}
+
+function toPastEpisodePreview(order: number, myProfile: BreadProfile): PastEpisodePreview | undefined {
+  const title = resolveEpisodeTitle(order, myProfile);
+  return title ? { label: formatEpisodeLabel(order), body: title } : undefined;
+}
 
 /** 두 미리보기 카드 공용 우상단 하트 3개. 실제 게임 상태와 무관한 장식용이라 항상 꽉 차 있다. */
 function PreviewHearts() {
@@ -296,8 +331,25 @@ function BreadCrossingPreviewCard({
 export default function OvenScreen() {
   const balance = useTokenStore((state) => state.balance);
   useTokenBalance();
+  const seasonQuery = useAiSeasonStatus();
+  // ep1 인사말에 실제 반죽을 넣으려고 필요하다(§ resolveEpisodeTitle) — 서버 설문 결과가
+  // 원천이라 아직 없으면(설문 전) 그 회차 제목은 그냥 못 만든다(가짜 대체값 금지, 홈 화면과
+  // 같은 이유 — SAMPLE_BREAD_PROFILE fallback 제거).
+  const { profile: myProfile } = useBreadProfile();
   const [dinoPreviewLabelShown, setDinoPreviewLabelShown] = useState(false);
   const [breadPreviewLabelShown, setBreadPreviewLabelShown] = useState(false);
+
+  const currentOrder = seasonQuery.data?.currentEpisode;
+  const currentEpisode =
+    currentOrder !== undefined && myProfile ? toWeeklyEpisode(currentOrder, myProfile) : undefined;
+  const pastOrders = currentOrder
+    ? Array.from({ length: Math.max(currentOrder - 1, 0) }, (_, index) => currentOrder - 1 - index)
+    : [];
+  const pastEpisodes = myProfile
+    ? pastOrders
+        .map((order) => toPastEpisodePreview(order, myProfile))
+        .filter((episode): episode is PastEpisodePreview => episode !== undefined)
+    : [];
 
   function handleMiniGameNavigate() {
     router.push("/luvin-hell");
@@ -330,14 +382,30 @@ export default function OvenScreen() {
 
         <View className="w-full flex-col items-start gap-[12px]">
           <SectionHeader title="러빈지옥 에피소드" />
-          <EpisodeThumbnailCard episode={CURRENT_EPISODE} />
-          {PAST_EPISODES.map((episode) => (
-            <EpisodeHistoryRow
-              key={episode.label}
-              label={episode.label}
-              body={episode.body}
-            />
-          ))}
+          {seasonQuery.isLoading ? (
+            <Text variant="body-s" className="text-text-muted">
+              불러오는 중...
+            </Text>
+          ) : seasonQuery.isError ? (
+            <Text variant="body-s" className="text-text-muted">
+              에피소드 정보를 불러오지 못했어요
+            </Text>
+          ) : !currentEpisode ? (
+            <Text variant="body-s" className="text-text-muted">
+              아직 진행 중인 에피소드가 없어요
+            </Text>
+          ) : (
+            <>
+              <EpisodeThumbnailCard episode={currentEpisode} />
+              {pastEpisodes.map((episode) => (
+                <EpisodeHistoryRow
+                  key={episode.label}
+                  label={episode.label}
+                  body={episode.body}
+                />
+              ))}
+            </>
+          )}
         </View>
 
         <View className="w-full flex-col items-center gap-[16px]">

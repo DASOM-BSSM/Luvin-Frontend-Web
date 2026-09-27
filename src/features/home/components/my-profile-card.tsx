@@ -22,9 +22,11 @@ export default function MyProfileCard({ profile }: MyProfileCardProps) {
         <Text variant="heading-h4" className="text-default-black">
           {profile.name}
         </Text>
-        <Text variant="body-xs" className="text-default-black">
-          {profile.description}
-        </Text>
+        {profile.description ? (
+          <Text variant="body-xs" className="text-default-black">
+            {profile.description}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

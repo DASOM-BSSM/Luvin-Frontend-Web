@@ -30,9 +30,8 @@ export interface AiCharacterProfileRequest {
 export interface AiCharacterView {
   characterId: string;
   /**
-   * "나"(내 분신)인지 상대 후보인지 구분하는 값. openapi 에 enum 이 문서화되어 있지
-   * 않아 `AiCharacterProfileRequest.representative` 필드명을 근거로 `'representative'`
-   * 문자열이라고 가정했다 — 실제 응답으로 꼭 확인할 것(§ map-ai-episode.ts 참고).
+   * "나"(내 분신)인지 상대 후보인지 구분하는 값. 실제 응답으로 확인 완료 —
+   * 대표(나)는 `'REPRESENTATIVE'`, 후보는 `'CANDIDATE'`(둘 다 대문자, § map-ai-episode.ts 참고).
    */
   role: string;
   gender: string;
@@ -89,4 +88,12 @@ export interface AiSelectionView {
   selectionId: string;
   partnerId: string;
   revision: number;
+}
+
+/** `GET /api/ai/seasons/report`. */
+export interface AiReportView {
+  finalPartnerId: string;
+  highlights: Record<string, string>[];
+  narrative: string;
+  renderMode: string;
 }
