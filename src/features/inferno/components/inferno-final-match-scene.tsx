@@ -53,14 +53,9 @@ export default function InfernoFinalMatchScene({ result, myProfile }: InfernoFin
       </View>
 
       <View className="flex-col items-center gap-[4px]">
-        <View className="flex-row items-center gap-[12px]">
-          <Text variant="heading-h4" className="text-text-primary">
-            {result.profile.name}
-          </Text>
-          <Text variant="body-s" className="text-text-primary">
-            {result.profile.attachmentLabel}
-          </Text>
-        </View>
+        <Text variant="heading-h4" className="text-text-primary">
+          {result.profile.name}
+        </Text>
         <Text variant="body-m" className="text-center text-text-primary">
           {result.summaryLine}
         </Text>

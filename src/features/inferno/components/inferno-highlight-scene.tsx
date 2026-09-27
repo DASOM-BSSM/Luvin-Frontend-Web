@@ -12,22 +12,23 @@ const CARD_GAP_CLASS = 'gap-[36px]';
 const VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 40 };
 
 interface InfernoHighlightSceneProps {
-  /** `episodeId` 기준이 아니라 이미 중요도 순으로 정렬돼 들어온다(map-ai-season-report.ts). */
+  /** 서버가 준 순서 그대로 보여준다(map-ai-season-report.ts — 중요도 점수가 없어졌다). */
   highlights: InfernoHighlight[];
 }
 
-function getHighlightKey(highlight: InfernoHighlight): string {
-  return `${highlight.episodeId}-${highlight.title}`;
+function getHighlightKey(highlight: InfernoHighlight, index: number): string {
+  return `${index}-${highlight.text}`;
 }
 
 /**
  * [DRAFT] ep5 3페이지 — 하이라이트 모아보기.
  *
  * Figma "ep5-하이라이트"(5760:4351)에 쪽지 틀(781x300)과 "HIGHLIGHT" 타이틀까지만 잡혀
- * 있다(재확인 완료). 원래는 ep1~4 대화에서 결정적인 줄을 직접 뽑아 채팅 말풍선으로
- * 보여줬는데, `GET /api/simulation/highlights`가 이미 완성된 제목/한 줄 요약을 주는 걸
- * 확인해서 카드 리스트로 바꿨다 — `episodeId`가 우리 회차 순서(1~4)와 다른 채번 체계로
- * 보여서(예시 응답에 5도 나옴) 회차 번호 배지 없이 title/summary만 보여준다.
+ * 있다(재확인 완료). 원래는 `GET /api/simulation/highlights`(제목/한 줄 요약/중요도/회차
+ * 번호가 딱 정해진 카드형)를 썼는데, 백엔드 확인 완료 — AI 시즌은 이 엔드포인트를 아예 안
+ * 쓰고 `/api/ai/seasons/report`의 `highlights`로 대체됐다. 이건 카드형 요약이 아니라 1:1
+ * 대화 중 인상 깊었던 한 줄을 그대로 인용한 것이라(실기기 확인: 실제 키가 `text`), 제목
+ * 없이 인용구 하나로 보여준다.
  *
  * 스크롤 등장 애니메이션은 이전 버전과 같은 방식이다: `FlatList`의
  * `onViewableItemsChanged`로 카드가 보이는 시점을 잡고 `RiseIn`으로 띄운다. 한 번 보인
@@ -40,23 +41,22 @@ export default function InfernoHighlightScene({ highlights }: InfernoHighlightSc
     setRevealedKeys((current) => {
       const next = new Set(current);
       for (const viewable of viewableItems) {
-        next.add(getHighlightKey(viewable.item as InfernoHighlight));
+        if (viewable.index != null) {
+          next.add(getHighlightKey(viewable.item as InfernoHighlight, viewable.index));
+        }
       }
       return next;
     });
   }
 
-  function renderHighlight({ item: highlight }: { item: InfernoHighlight }) {
-    const revealed = revealedKeys.has(getHighlightKey(highlight));
+  function renderHighlight({ item: highlight, index }: { item: InfernoHighlight; index: number }) {
+    const revealed = revealedKeys.has(getHighlightKey(highlight, index));
 
     return (
       <RiseIn start={revealed}>
         <View className="w-full flex-col gap-[4px]">
           <Text variant="heading-h4" className="text-text-primary">
-            {highlight.title}
-          </Text>
-          <Text variant="body-s" className="text-text-muted">
-            {highlight.summary}
+            “{highlight.text}”
           </Text>
         </View>
       </RiseIn>
