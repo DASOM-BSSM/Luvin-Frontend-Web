@@ -89,3 +89,11 @@ export interface AiSelectionView {
   partnerId: string;
   revision: number;
 }
+
+/** `GET /api/ai/seasons/report`. */
+export interface AiReportView {
+  finalPartnerId: string;
+  highlights: Record<string, string>[];
+  narrative: string;
+  renderMode: string;
+}

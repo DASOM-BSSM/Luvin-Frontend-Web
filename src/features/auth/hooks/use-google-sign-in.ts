@@ -5,6 +5,7 @@ import { googleLogin } from '@/src/features/auth/api/auth';
 import { setAccessToken } from '@/src/features/auth/lib/token-storage';
 import { useAuthStore } from '@/src/features/auth/store/auth-store';
 import { useBreadStore } from '@/src/features/bread/store/bread-store';
+import { useInfernoStore } from '@/src/features/inferno/store/inferno-store';
 import { useSurveyStore } from '@/src/features/survey/store/survey-store';
 import queryClient from '@/src/lib/query-client';
 
@@ -41,9 +42,15 @@ export default function useGoogleSignIn() {
       // 다른 계정 선택 등)도 있어서, 로그아웃 때와 마찬가지로 이전 계정의 캐시를 여기서도
       // 지운다 — 안 그러면 새 계정인데 이전 계정의 시즌/반죽/설문 결과가 그대로 보인다
       // (사용자가 실기기에서 직접 재현한 버그).
+      //
+      // useInfernoStore(완료한 회차 목록)도 같이 지운다 — 이건 MMKV에 계정 구분 없이 저장돼서
+      // 위 셋을 지워도 안 지워지면, 홈 화면의 "다음 에피소드"(findNextInfernoEpisode)가 이전
+      // 계정이 완료한 회차 수만큼 건너뛴 회차를 새 계정 것인 양 보여준다 — 실제 서버 시즌은
+      // 1화도 안 끝났는데 홈 화면만 2화부터 시작하는 것처럼 보이는 버그로 재현됨.
       queryClient.clear();
       useBreadStore.getState().clear();
       useSurveyStore.getState().resetSurvey();
+      useInfernoStore.getState().resetProgress();
 
       await setAccessToken(result.accessToken);
       setSession(result.user);

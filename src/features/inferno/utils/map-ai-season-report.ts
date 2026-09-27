@@ -1,7 +1,7 @@
-import type { AiSeasonStatusView } from '@/src/features/inferno/api/ai-season-types';
+import type { AiReportView, AiSeasonStatusView } from '@/src/features/inferno/api/ai-season-types';
 import type { SimulationHighlightView, SimulationReportView } from '@/src/features/inferno/api/simulation-types';
-import type { InfernoConversation, InfernoFinalMatchResult, InfernoHighlight, InfernoSeasonReport } from '@/src/features/inferno/types';
-import { findMatchedPartner } from '@/src/features/inferno/utils/map-ai-episode';
+import type { InfernoFinalMatchResult, InfernoHighlight, InfernoSeasonReport } from '@/src/features/inferno/types';
+import { deriveCharacterPersona } from '@/src/features/inferno/utils/character-persona';
 
 /** `GET /api/simulation/report` 응답을 화면이 쓰는 모양으로 바꾼다. 지금은 필드가 1:1이라 그대로 옮기기만 한다. */
 export function mapSimulationReport(report: SimulationReportView): InfernoSeasonReport {
@@ -29,30 +29,23 @@ export function mapSimulationHighlights(highlights: SimulationHighlightView[]): 
 }
 
 /**
- * ep5 "최종 매칭"을 ep4(시즌의 마지막 매칭 회차) 데이터에서 뽑는다. `GET /api/simulation/report`엔
- * 이 정보가 없어서(season-summary.ts 주석 참고) 새 엔드포인트 대신 이미 연결된 ep4 데이터를
- * 재사용한다.
- *
- * "다시 굽기"(상대를 바꾸는 곁가지)는 아직 API 연동이 안 돼 있어서, 유저가 ep4에서 다시
- * 굽기를 썼다면 그 이후 바뀐 진짜 최종 상대가 아니라 다시 굽기 전 매칭 상대가 나온다 —
- * 다시 굽기가 연결되기 전까지는 어쩔 수 없는 한계다.
+ * ep5 "최종 매칭"을 `GET /api/ai/seasons/report`의 `finalPartnerId`에서 뽑는다. 백엔드
+ * 확인 완료 — 이 값은 "다시 굽기"로 상대가 바뀐 경우까지 반영된 진짜 최종 상대라, ep4
+ * 대화에서 상대를 직접 추론하던 예전 우회 로직(`mapFinalMatchFromEp4`)을 대체한다.
  */
-export function mapFinalMatchFromEp4(
-  ep4Conversation: InfernoConversation | undefined,
+export function mapFinalMatchFromReport(
+  report: AiReportView,
   season: AiSeasonStatusView,
 ): InfernoFinalMatchResult | undefined {
-  if (!ep4Conversation) {
+  const character = season.characters.find((candidate) => candidate.characterId === report.finalPartnerId);
+  if (!character) {
     return undefined;
   }
 
-  const partner = findMatchedPartner(ep4Conversation);
-  const character = season.characters.find((candidate) => candidate.characterId === partner?.id);
-  if (!partner || !character) {
-    return undefined;
-  }
+  const persona = deriveCharacterPersona(character.characterId);
 
   return {
-    profile: { type: partner.type, name: partner.name, attachmentLabel: character.personality },
+    profile: { type: persona.type, name: persona.name, attachmentLabel: character.personality },
     summaryLine: `이 시즌, 당신의 분신은 ${character.personality} 성향과 이어졌어요`,
   };
 }

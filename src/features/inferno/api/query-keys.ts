@@ -2,6 +2,7 @@
 export const aiSeasonKeys = {
   status: ['ai-season', 'status'] as const,
   episode: (episodeNumber: number) => ['ai-season', 'episode', episodeNumber] as const,
+  report: ['ai-season', 'report'] as const,
 };
 
 /** `simulation-controller`(ep5 리포트/하이라이트) 쿼리 키. `aiSeasonKeys`와 컨트롤러가 달라 따로 둔다. */

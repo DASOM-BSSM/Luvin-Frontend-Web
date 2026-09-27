@@ -56,12 +56,19 @@ export default function InfernoEp2Screen() {
   // matchReveal/personalChatPages/feedbackTopics 는 매칭 회차 데이터가 갖춰지면 한꺼번에
   // 채워진다(map-ai-episode.ts). AI가 아직 대화를 안 만들었거나 실패했으면 빈 화면 대신
   // 안내를 보여준다(§11, ep1 과 같은 이유).
+  //
+  // pages.length도 같이 본다 — isEpisodeFullyGenerated는 매칭 회차에서 1:1 대화(one_to_one)
+  // 존재만 확인하고 전체대화(group)는 안 보기 때문에, matchReveal 등은 다 갖춰졌는데 group
+  // 메시지만 아직 비어 있는 경우가 실제로 생긴다. 그 상태에서 phase가 아직 'group'이면
+  // 아래 `conversation.pages[0]`이 undefined라 화면이 그대로 크래시한다(실기기에서 확인된
+  // 버그: "Cannot read property 'messages' of undefined").
   if (
     !episode ||
     !conversation ||
     !conversation.matchReveal ||
     !conversation.personalChatPages ||
-    !conversation.feedbackTopics
+    !conversation.feedbackTopics ||
+    conversation.pages.length === 0
   ) {
     return (
       <InfernoEpisodeFrame episode={episode ?? { order: EPISODE_ORDER, title: '' }} surface="plain" skipLabel="잠시 나가기" onSkipPress={handleExitPress}>
@@ -75,6 +82,7 @@ export default function InfernoEp2Screen() {
     );
   }
 
+  const groupPage = conversation.pages[flow.groupPageIndex];
   const personalPage = conversation.personalChatPages[flow.personalPageIndex];
 
   return (
@@ -88,8 +96,10 @@ export default function InfernoEp2Screen() {
       onSkipPress={handleExitPress}
     >
       {flow.phase === 'group' ? (
+        // 쪽이 바뀌면 타자를 처음부터 다시 치도록 key 로 갈아 끼운다(ep1 과 같은 이유).
         <InfernoChatScene
-          page={conversation.pages[0]}
+          key={groupPage.id}
+          page={groupPage}
           participants={conversation.participants}
           onPageDone={flow.handleLineDone}
         />

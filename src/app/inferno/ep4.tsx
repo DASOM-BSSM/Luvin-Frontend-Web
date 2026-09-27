@@ -61,7 +61,17 @@ export default function InfernoEp4Screen() {
   // rebake 는 일부러 뺀다(위 주석 참고) — matchReveal/personalChatPages 만 갖추면 되고,
   // AI가 아직 대화를 안 만들었거나 실패했으면 빈 화면 대신 안내를 보여준다(§11, ep1~3 과
   // 같은 이유).
-  if (!episode || !conversation || !conversation.matchReveal || !conversation.personalChatPages) {
+  //
+  // pages.length도 같이 본다(ep2.tsx와 같은 이유) — matchReveal/personalChatPages가 다
+  // 갖춰져도 전체대화(group) 메시지만 아직 비어 있을 수 있어서, 그 상태로 phase가 'group'
+  // 이면 `conversation.pages[0]`이 undefined라 크래시한다(실기기 확인된 버그).
+  if (
+    !episode ||
+    !conversation ||
+    !conversation.matchReveal ||
+    !conversation.personalChatPages ||
+    conversation.pages.length === 0
+  ) {
     return (
       <InfernoEpisodeFrame episode={episode ?? { order: EPISODE_ORDER, title: '' }} surface="plain" skipLabel="잠시 나가기" onSkipPress={handleExitPress}>
         <InfernoEpisodeStatus

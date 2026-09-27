@@ -54,6 +54,16 @@ export default function HomeScreen() {
   const hasStartedInferno = completedOrders.length > 0;
   const weeklyEpisode = hasStartedInferno ? findNextInfernoEpisode(completedOrders) : undefined;
 
+  if (__DEV__) {
+    // 홈 카드가 잘못된 회차를 보여준다는 신고를 조사하려고 실제 로컬 진행 기록을 찍는다 —
+    // completedOrders 가 비어있지 않은데 잘못된 값이면 useInfernoStore.resetProgress 가
+    // 실제로 안 먹은 것이고, [0,1]이 정말 들어있으면 로그인 이후 이 계정에서 0/1화를
+    // 진짜로 완료 처리한 것이다(버그가 아니라 정상 진행).
+    console.log(
+      `[HomeScreen] completedOrders=${JSON.stringify(completedOrders)} weeklyEpisode=${weeklyEpisode?.order}`,
+    );
+  }
+
   // 본문이 아직 없는 회차는 눌러도 갈 곳이 없다. 그런 회차는 카드를 누르지 못하게 둔다.
   const canOpenWeeklyEpisode =
     weeklyEpisode !== undefined && INFERNO_EPISODE_HREFS[weeklyEpisode.order] !== undefined;

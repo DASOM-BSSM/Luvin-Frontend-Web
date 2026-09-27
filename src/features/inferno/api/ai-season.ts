@@ -6,6 +6,7 @@ import type {
   AiCharacterProfileRequest,
   AiEpisodeMessagesView,
   AiEpisodeProgressView,
+  AiReportView,
   AiRerollView,
   AiSeasonStatusView,
   AiSelectionView,
@@ -33,12 +34,33 @@ export async function createSeasonFromSurvey(surveyResultId: string): Promise<Ai
   const { data } = await httpClient.post<ApiEnvelope<AiSeasonStatusView>>('/api/ai/seasons/from-survey', {
     surveyResultId,
   });
+
+  if (__DEV__) {
+    // 계정별로 진짜 새 seasonId를 받는지(캐시 누수 아닌지) 만든 직후 바로 확인하기 위한 증거.
+    const user = useAuthStore.getState().user;
+    console.log(
+      `[createSeasonFromSurvey] user=${user?.userId}(${user?.nickname}) surveyResultId=${surveyResultId} -> ` +
+        `seasonId=${data.data.seasonId} currentEpisode=${data.data.currentEpisode} status=${data.data.status}`,
+    );
+  }
+
   return data.data;
 }
 
 /** `GET /api/ai/seasons/me`. */
 export async function getSeasonStatus(): Promise<AiSeasonStatusView> {
   const { data } = await httpClient.get<ApiEnvelope<AiSeasonStatusView>>('/api/ai/seasons/me');
+
+  if (__DEV__) {
+    // 계정 바꿔도 같은 시즌이 보인다는 걸 확인/반박하기 위한 증거 — 진짜 다른 유저로
+    // 로그인됐는지(userId)와 그 유저가 실제로 어떤 seasonId를 받는지 같이 찍는다.
+    const user = useAuthStore.getState().user;
+    console.log(
+      `[getSeasonStatus] user=${user?.userId}(${user?.nickname}) seasonId=${data.data.seasonId} ` +
+        `currentEpisode=${data.data.currentEpisode} status=${data.data.status}`,
+    );
+  }
+
   return data.data;
 }
 
@@ -99,5 +121,16 @@ export async function submitEpisode3Result(success: boolean, partnerId?: string)
     success,
     partnerId,
   });
+  return data.data;
+}
+
+/**
+ * `GET /api/ai/seasons/report`. ep5 시즌 리포트 — 백엔드 확인 완료: `finalPartnerId`가
+ * "다시 굽기" 이후 바뀐 진짜 최종 상대까지 반영된 값이라, 이전에 ep4 대화에서 최종 매칭
+ * 상대를 직접 추론하던 우회 로직(map-ai-season-report.ts의 옛 `mapFinalMatchFromEp4`)을
+ * 대체한다.
+ */
+export async function getSeasonReport(): Promise<AiReportView> {
+  const { data } = await httpClient.get<ApiEnvelope<AiReportView>>('/api/ai/seasons/report');
   return data.data;
 }

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import Text from '@/src/components/ui/text';
 import useBreadProfile from '@/src/features/bread/hooks/use-bread-profile';
@@ -39,7 +39,9 @@ export default function InfernoEp5Screen() {
     summary,
     isLoading: isSummaryLoading,
     isError: isSummaryError,
-  } = useInfernoSeasonSummary(EPISODE_ORDER, breadProfile.profile);
+    hasGenerationFailed,
+    retryGeneration,
+  } = useInfernoSeasonSummary(EPISODE_ORDER);
   const flow = useInfernoEp5Flow();
 
   // "잠시 나가기" 는 스킵과 다르다. 본 것으로 치지 않아서 다시 들어오면 처음부터다.
@@ -56,16 +58,25 @@ export default function InfernoEp5Screen() {
   if (!episode || !summary || !myProfile) {
     return (
       <InfernoEpisodeFrame episode={episode ?? { order: EPISODE_ORDER, title: '' }} surface="note" skipLabel="잠시 나가기" onSkipPress={handleExitPress}>
-        <View className="flex-1 items-center justify-center px-[30px]">
+        <View className="flex-1 items-center justify-center gap-[12px] px-[30px]">
           <Text variant="body-m" className="text-center text-default-black">
-            {isError
-              ? '정보를 불러오지 못했어요'
-              : breadProfile.isSurveyMissing
-                ? '설문을 먼저 완료해주세요'
-                : isLoading
-                  ? 'AI가 리포트를 만들고 있어요...'
-                  : '리포트가 아직 없어요'}
+            {hasGenerationFailed
+              ? '리포트를 만들지 못했어요'
+              : isError
+                ? '정보를 불러오지 못했어요'
+                : breadProfile.isSurveyMissing
+                  ? '설문을 먼저 완료해주세요'
+                  : isLoading
+                    ? 'AI가 리포트를 만들고 있어요...'
+                    : '리포트가 아직 없어요'}
           </Text>
+          {hasGenerationFailed ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="다시 시도" onPress={retryGeneration}>
+              <Text variant="body-s" className="text-state-error">
+                다시 시도
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
       </InfernoEpisodeFrame>
     );

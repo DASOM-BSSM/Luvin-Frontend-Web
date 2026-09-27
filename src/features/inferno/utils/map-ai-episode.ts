@@ -38,16 +38,14 @@ const MESSAGES_PER_PAGE = 3;
 const MATCH_REVEAL_EPISODES = new Set([2, 4]);
 
 /**
- * `AiMessageView.sceneKind` 값. 매칭 회차의 전체대화/1:1대화를 가르는 데 쓴다. 백엔드
- * 확인 완료 — 실제 값은 `'group'` / `'candidates_only'`(매칭 단계, 후보들끼리만 나오는
- * 구간) / `'one_to_one'` 세 가지다(`AiSeasonOrchestrationServiceImpl.VALID_SCENE_KINDS`).
+ * `AiMessageView.sceneKind` 값. 매칭 회차의 전체대화/1:1대화를 가르는 데 쓴다.
  *
- * `'candidates_only'`는 지금 화면에서 아예 안 쓴다 — Figma 시안이 전체대화 → 매칭 결과
- * 쪽지 → 1:1대화 두 단계만 보여주고, 매칭 단계 전용 채팅 화면이 없기 때문이다. 이 구간
- * 메시지가 실제로 존재하는데 안 보여도 되는 게 맞는지는 화면에서 대화가 비어 보이면
- * 다시 확인할 것.
+ * 백엔드 확인 완료 — `'candidates_only'`가 예전 `'group'`을 대체한 새 이름이다(전체대화
+ * 단계, 매칭 전 후보들끼리 나누는 대화). 실기기에서 새로 생성된 시즌이 `'group'` 없이
+ * `'candidates_only'`/`'one_to_one'`만 주는 걸로 재현·확인했다. 이름이 바뀌기 전에 만들어진
+ * 시즌이 아직 `'group'`으로 남아있을 수 있어 둘 다 받아들인다.
  */
-const GROUP_SCENE_KIND = 'group';
+const GROUP_SCENE_KINDS = new Set(['group', 'candidates_only']);
 const PERSONAL_SCENE_KIND = 'one_to_one';
 
 function buildParticipants(season: AiSeasonStatusView, myProfile: BreadProfile | null): InfernoParticipant[] {
@@ -108,20 +106,6 @@ function chunkIntoPages(
 }
 
 /**
- * 매칭 회차의 전체대화를 한 쪽에 몰아 담는다. `MESSAGES_PER_PAGE` 로 쪼개지 않는 이유:
- * ep2 화면(use-inferno-ep2-flow)은 group 단계에서 `pages[0]` 하나만 그리고 쪽을 넘기는
- * 기능이 없다 — 시안이 전체대화를 한 화면으로 보여주기 때문(ep1 처럼 두 쪽으로 끊지 않음).
- * 여기서 쪼개면 두 번째 쪽부터는 화면에 영영 나타나지 않는다.
- */
-function buildSinglePage(messages: AiMessageView[], representativeId: string | undefined): InfernoChatPage[] {
-  if (messages.length === 0) {
-    return [];
-  }
-
-  return [{ id: 'page-group', messages: messages.map((message) => toChatMessage(message, representativeId)) }];
-}
-
-/**
  * 1:1 대화(personal scene) 메시지 중 대표(나)가 아닌 쪽의 speakerId 를 매칭 상대로 본다 —
  * 1:1 대화는 정의상 상대가 하나뿐이라 성립한다. 상대를 아직 못 찾으면(메시지가 비어 매칭 전)
  * undefined.
@@ -153,22 +137,6 @@ function buildFeedbackTopics(
   return personalMessages
     .filter((message) => isFromMe(message, representativeId))
     .map((message) => ({ messageId: message.messageId, message: message.text }));
-}
-
-/**
- * 이미 매핑된 대화에서 1:1 대화 상대를 찾는다. `buildMatchReveal`과 같은 전제(1:1 대화엔
- * 상대가 하나뿐)를 쓰지만, 매핑 전 원본(AiMessageView)이 아니라 매핑된 `InfernoConversation`
- * 위에서 동작한다 — ep5 최종 매칭(map-ai-season-report.ts)처럼 이미 매핑된 ep4 대화만
- * 들고 있는 자리에서 재사용하려고 따로 둔다.
- */
-export function findMatchedPartner(conversation: InfernoConversation): InfernoParticipant | undefined {
-  const personalMessages = (conversation.personalChatPages ?? []).flatMap((page) => page.messages);
-  const partnerId = personalMessages.find((message) => {
-    const participant = conversation.participants.find((candidate) => candidate.id === message.participantId);
-    return participant && !participant.isMine;
-  })?.participantId;
-
-  return conversation.participants.find((participant) => participant.id === partnerId);
 }
 
 /**
@@ -207,13 +175,13 @@ export function mapAiEpisodeToConversation(
     };
   }
 
-  const groupMessages = episode.messages.filter((message) => message.sceneKind === GROUP_SCENE_KIND);
+  const groupMessages = episode.messages.filter((message) => GROUP_SCENE_KINDS.has(message.sceneKind));
   const personalMessages = episode.messages.filter((message) => message.sceneKind === PERSONAL_SCENE_KIND);
 
   return {
     episodeOrder: episode.episodeNumber,
     participants,
-    pages: buildSinglePage(groupMessages, representativeId),
+    pages: chunkIntoPages(groupMessages, undefined, representativeId),
     matchReveal: buildMatchReveal(personalMessages, participants, representativeId),
     personalChatPages: chunkIntoPages(personalMessages, undefined, representativeId),
     feedbackTopics: buildFeedbackTopics(personalMessages, representativeId),
