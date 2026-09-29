@@ -1,4 +1,6 @@
 import "@/global.css";
+// 웹에서 reanimated Animated.View 의 className 을 살린다 — 네이티브는 빈 모듈(`src/lib/animated-interop.web.ts`).
+import "@/src/lib/animated-interop";
 
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
