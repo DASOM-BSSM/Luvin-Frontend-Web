@@ -53,16 +53,16 @@ This repository is `luvin-frontend-v2` — a fresh Expo SDK 57 rewrite. Most of 
 
 Do NOT assume any of these exist, and do NOT install them on your own initiative. Each one is a decision the user has to make; several also require a native rebuild.
 
-| Need                     | Intended choice                                     | Section |
-| ------------------------ | --------------------------------------------------- | ------- |
-| HTTP client              | `axios` or plain `fetch` — undecided                | §11     |
-| Lint / format / hooks    | `eslint` + `eslint-config-expo`, `prettier`, `husky`, `lint-staged` | §5 |
-| Unit / e2e tests         | `jest-expo` + `@testing-library/react-native`, Maestro | §6   |
-| Secure token storage     | `expo-secure-store`                                 | §12     |
-| Push notifications       | `expo-notifications`                                | §13     |
-| Crash reporting          | `@sentry/react-native`                              | §14     |
-| Analytics                | none chosen                                         | §14     |
-| Toast / snackbar         | in-house component preferred over a new dependency  | §11     |
+| Need                  | Intended choice                                                     | Section |
+| --------------------- | ------------------------------------------------------------------- | ------- |
+| HTTP client           | `axios` or plain `fetch` — undecided                                | §11     |
+| Lint / format / hooks | `eslint` + `eslint-config-expo`, `prettier`, `husky`, `lint-staged` | §5      |
+| Unit / e2e tests      | `jest-expo` + `@testing-library/react-native`, Maestro              | §6      |
+| Secure token storage  | `expo-secure-store`                                                 | §12     |
+| Push notifications    | `expo-notifications`                                                | §13     |
+| Crash reporting       | `@sentry/react-native`                                              | §14     |
+| Analytics             | none chosen                                                         | §14     |
+| Toast / snackbar      | in-house component preferred over a new dependency                  | §11     |
 
 `prettier-plugin-tailwindcss` is in `devDependencies`, but **`prettier` itself is not installed and there is no Prettier config** — the plugin currently does nothing. See §5.
 
@@ -148,10 +148,10 @@ Even without a test runner, keep pure logic out of components — this is requir
 
 ## When testing is turned on (the intended shape)
 
-| Layer     | Tool                                          | Scope                                                      |
-| --------- | --------------------------------------------- | ---------------------------------------------------------- |
-| Unit      | `jest-expo` + `@testing-library/react-native` | Pure logic first (scoring, matching), then shared UI in `src/components/ui/` |
-| E2E       | Maestro (YAML flows in `.maestro/`)           | Onboarding → Google OAuth → survey → result                |
+| Layer | Tool                                          | Scope                                                                        |
+| ----- | --------------------------------------------- | ---------------------------------------------------------------------------- |
+| Unit  | `jest-expo` + `@testing-library/react-native` | Pure logic first (scoring, matching), then shared UI in `src/components/ui/` |
+| E2E   | Maestro (YAML flows in `.maestro/`)           | Onboarding → Google OAuth → survey → result                                  |
 
 Unit tests live next to the code under test in a `__tests__/` folder. Do not aim for a coverage number; cover the scoring/matching rules and the auth flow.
 
@@ -200,19 +200,30 @@ Unit tests live next to the code under test in a `__tests__/` folder. Do not aim
 
 ## Typography
 
-Only two fonts are used in Luvin:
+Three fonts are used in Luvin:
 
-| Font               | Registered family | Usage                                   |
-| ------------------ | ----------------- | --------------------------------------- |
-| `Yde street B`     | `YdestreetB`      | Headlines, brand elements, display text |
-| `Yde street L`     | `YdestreetL`      | Body text, descriptions, subtext        |
+| Font           | Registered family   | Usage                                                                             |
+| -------------- | ------------------- | --------------------------------------------------------------------------------- |
+| `Yde street B` | `YdestreetB`        | Headlines, brand elements, display text                                           |
+| `Yde street L` | `YdestreetL`        | Body text, descriptions, subtext                                                  |
+| `Ok Mallang B` | `OkMallangBRegular` | 러빈지옥 titles and emphasis copy (episode titles, mission banners, key callouts) |
 
 Do NOT use any other font. All font usage details are defined in Figma.
 
-- The two `.ttf` files live in `src/assets/fonts/` and are loaded with `useFonts` in `src/app/_layout.tsx`
-- **One invariant, three places**: the `useFonts` key, the PostScript name in the `.ttf`, and `fontFamily` in `src/constants/typography.ts` (which feeds Tailwind) must all be the same string. Changing one without the others silently falls back to the system font
-- RN cannot synthesize weight across static font files, so weight is expressed by **switching family** (`YdestreetB` vs `YdestreetL`) — never with `fontWeight` or `font-bold`
+- The three `.ttf` files live in `src/assets/fonts/` and are loaded with `useFonts` in `src/app/_layout.tsx`. The Ok Mallang B file is `OkMallangB-Regular.ttf`, renamed from its original `Ok Mallang B.ttf` — a space in the filename broke Metro's font asset resolution on Android (the font silently fell back to the system font while every other style still applied). Never reintroduce a space in a font filename
+- **One invariant, everywhere the registered family is referenced**: the `useFonts` key and `fontFamily` in `src/constants/typography.ts` (which feeds Tailwind) must be the same string. Changing one without the other silently falls back to the system font. For Ok Mallang B this registered string is `OkMallangBRegular` — deliberately **not** the same as the `.ttf`'s actual PostScript name (`OkMallangB-Regular`, verified via the `name` table). They don't need to match: expo-font's Android font registry looks fonts up by whatever key you pass to `useFonts`, not by the file's internal PostScript name
+- **Verified on-device bug: never apply Ok Mallang B via the `font-ok-mallang-b` Tailwind class.** NativeWind v4's CSS-to-RN-style pipeline silently drops this font family on the `className` path — confirmed on a real Android device, reproduced with and without a hyphen in the registered name (so it isn't a hyphen-parsing issue, just a NativeWind limitation with this font) — while the exact same string applied as a raw `style={{ fontFamily: fontFamily.okMallangB }}` renders correctly every time. Always apply this font via a `style` prop, never `font-ok-mallang-b` — this is a deliberate, measured exception to the inline-style ban (§16), on the same footing as the Reanimated exception
+- RN cannot synthesize weight across static font files, so weight is expressed by **switching family** (`YdestreetB` / `YdestreetL` / `OkMallangBRegular`) — never with `fontWeight` or `font-bold`
 - Use the Tailwind `fontSize`/`fontFamily` tokens generated from `typography.ts` (Figma `Heading/H1`–`H5`, `Body/XL`–`XXS`, all at a 160% line-height ratio) — do not set a raw `fontSize`
+
+### Exception: `OK Mallang B` has no registered font-size scale, and carries a text stroke
+
+Unlike `YdestreetB`/`YdestreetL`, `OK Mallang B` is **not** covered by the `Heading/*` / `Body/*` text styles in Figma — there is no size token for it in `typography.ts`. Every Figma instance of it so far also has a **stroke (outline)** painted on the text itself — Figma's own codegen does not expose text-stroke as CSS/props, so it is invisible unless you open a screenshot of that specific node and inspect it (get_design_context's extracted code will look like plain, strokeless text even when Figma clearly renders one — do not trust it for this).
+
+- Every time `OK Mallang B` is used, **check the exact font size AND stroke (present or not, color, width) in Figma for that specific instance** — never reuse another instance's size or stroke without checking, since both can differ per instance. Confirmed so far: `display.title` (Ready?/Game Over, 40px) uses a thin pink-200 stroke; `display.score` (HUD record counter, 28px) uses a much heavier black (`default/black` `#1D1D1D`) stroke; the two one-off logo/title texts (`Choose Your Mode` 50px, `Luvin's Inferno` 24px) use a very thin pink-200 stroke
+- RN's `Text` has no stroke property, and this codebase's chosen way to fake one is `src/components/ui/ok-mallang-b-text.tsx` (`OkMallangBText`) — it layers 8 direction-offset copies of the text in the stroke color underneath one copy in the fill color, which naturally supports the same multi-line wrapping as a plain `Text` (an `react-native-svg` `Text` was considered too, since it has real `stroke`/`strokeWidth` props, but multi-line text there needs manual `tspan` layout, so the layered-copy approach was chosen instead — reconsider `react-native-svg` if a future instance needs pixel-exact stroke joins that the layered approach can't approximate well)
+- This is the one place a raw `fontSize`/stroke value pair is allowed inline, since no token exists to reference. If the same size+stroke combination is reused across 2+ places, add it to `typography.ts`'s `display` object as a named token (with `fill`/`stroke.color`/`stroke.width`) at that point, the way `display.title`/`display.score` already are — don't leave duplicated raw values scattered across components
+- The `Text` component's `display-title`/`display-score` variants already route through `OkMallangBText` and the `display.*` tokens — use those variants instead of calling `OkMallangBText` directly whenever the text matches one of those two tokens exactly
 
 ---
 
@@ -357,11 +368,11 @@ Always use `@/`-prefixed absolute imports — no `../../` relative climbing out 
 
 ## The three states
 
-| State       | Pattern                                                                                      |
-| ----------- | -------------------------------------------------------------------------------------------- |
+| State       | Pattern                                                                                                                                                                                                              |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Loading** | Skeleton that mirrors the real layout — `<Skeleton />` from `src/components/ui/`, composed into a screen-level `<HomeSkeleton />` in the feature folder. No full-screen spinners, no layout shift when data arrives. |
-| **Error**   | Inline `<ErrorState message onRetry />` wired to the query's `refetch` — the user must always have a way to retry. |
-| **Empty**   | `<EmptyState />` with the Figma illustration and copy — never an empty scroll view.           |
+| **Error**   | Inline `<ErrorState message onRetry />` wired to the query's `refetch` — the user must always have a way to retry.                                                                                                   |
+| **Empty**   | `<EmptyState />` with the Figma illustration and copy — never an empty scroll view.                                                                                                                                  |
 
 ## Mutations and feedback
 
@@ -384,11 +395,11 @@ Google OAuth only; the first login auto-creates the account, so there is no sepa
 
 ## Where tokens go — this split is mandatory
 
-| Data                                        | Storage                                              |
-| ------------------------------------------- | ---------------------------------------------------- |
-| Access token, refresh token, OAuth code     | **`expo-secure-store` only** (iOS Keychain / Android Keystore) |
-| Session status, user profile, bread type    | In-memory Zustand store (`src/features/auth/store/`) |
-| Non-sensitive prefs (onboarding seen, survey draft, theme) | MMKV wrapper in `src/lib/storage.ts`  |
+| Data                                                       | Storage                                                        |
+| ---------------------------------------------------------- | -------------------------------------------------------------- |
+| Access token, refresh token, OAuth code                    | **`expo-secure-store` only** (iOS Keychain / Android Keystore) |
+| Session status, user profile, bread type                   | In-memory Zustand store (`src/features/auth/store/`)           |
+| Non-sensitive prefs (onboarding seen, survey draft, theme) | MMKV wrapper in `src/lib/storage.ts`                           |
 
 - **Never** put a token in MMKV, in a Zustand `persist` store, in the query cache, in an `.env` file, in a log, or in a URL / query parameter
 - `src/features/auth/lib/token-storage.ts` is the **only** module that touches SecureStore — everything else calls it. Do not read SecureStore from a component
@@ -513,3 +524,41 @@ See `CONTRIBUTING.md` for the full table. Summary:
 - **API token**: expires every 90 days — verify before use, never commit to repository
 - **Figma File Key**: ask the user before querying — never hardcode in any file
 - When querying Figma: specify `fileKey` and `node-id` separately for reliability
+
+---
+
+# 19. API Integration (OpenAPI Spec + Axios)
+
+> Draft, pending review against the actual backend `openapi.json` structure.
+
+## HTTP Client
+
+- **`axios` is the confirmed choice.** This supersedes the "HTTP client: axios or fetch — undecided" entry in §2
+- Create exactly one axios instance in `src/lib/api-client.ts` — never call `axios.create()` from a component or feature file
+- `baseURL` comes from the `EXPO_PUBLIC_API_URL` environment variable (add the key to `.env.example` per §4)
+- The auth header is attached automatically in a request interceptor, but the token value itself must only be read through `src/features/auth/lib/token-storage.ts` — no exception for interceptor code (§12)
+- On a 401, follow the single-flight refresh rule already defined in §12; implement it inside the interceptor
+
+## OpenAPI Spec → Generated Types
+
+- Save the OpenAPI 3.1 spec (JSON) received from the backend at **`docs/api/openapi.json`** — this file is the source of truth for the API surface; do not browse the backend repo to infer endpoints
+- Generate TypeScript types from this spec with `openapi-typescript` into **`src/types/api-generated.ts`**
+  - Mark the file as auto-generated in a header comment; never hand-edit it
+  - Add a `pnpm generate:api-types` script to `package.json`
+  - Installing `openapi-typescript` requires user approval first, per §3
+- **Whenever a new spec arrives**, follow this sequence:
+  1. Replace `docs/api/openapi.json`
+  2. Re-run `pnpm generate:api-types`
+  3. Run `pnpm tsc --noEmit` to surface any type errors in existing API functions/components
+  4. Fix any errors and report a summary of what changed
+
+## API Functions & Query Integration
+
+- Write request functions per feature in `src/features/<feature>/api/`, using the types from `api-generated.ts` directly — no `any` on request or response types (§16)
+- Query keys stay in `src/features/<feature>/api/query-keys.ts`, per the existing convention
+- Components never call axios or an API function directly — always go through `useQuery`/`useMutation` (§11)
+
+## Workflow
+
+- On receiving a new `openapi.json`, summarize which endpoints were added or changed before starting work
+- Never guess at an endpoint that isn't in the spec — ask the user if something expected is missing

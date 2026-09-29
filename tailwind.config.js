@@ -7,7 +7,11 @@
 // 먼저 시도하고, 실패하면 jiti(+sucrase)로 재시도하기 때문이다. 그래서 tailwind CLI 와
 // metro 를 통해 로드될 때만 동작하고, node 로 이 파일을 직접 require 하면 실패한다.
 const { colors } = require('./src/constants/colors');
-const { tailwindFontFamily, tailwindFontSize } = require('./src/constants/typography');
+const {
+  tailwindFontFamily,
+  tailwindFontSize,
+  infernoMiniGameLayout,
+} = require('./src/constants/typography');
 
 module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
@@ -17,6 +21,9 @@ module.exports = {
       colors,
       fontFamily: tailwindFontFamily,
       fontSize: tailwindFontSize,
+      width: infernoMiniGameLayout.width,
+      height: infernoMiniGameLayout.height,
+      spacing: infernoMiniGameLayout.spacing,
     },
   },
   plugins: [],

@@ -69,10 +69,27 @@ export const defaultColor = {
   gray: '#D9D9D9',
 };
 
+/**
+ * 하트 색. `Color system` 컬렉션에는 없는 값이라 Figma "미니게임2 Playing"
+ * (5726:2608)의 하트 자산(Frame 107, 6219:4039)을 픽셀 샘플링해서 얻었다 — 채워진 하트는
+ * `state.error`(#FF0030)와도 `pink.*`와도 다른 별도 톤(#FF5454)이고, 빈 하트는 `default.gray`
+ * 와 정확히 같은 값이라 재사용한다.
+ *
+ * 러빈지옥 1:1 대화의 하트 배지(`ep2-대화 끝` 5467:5765)도 `filled` 를 같이 쓴다. 그쪽은 SVG
+ * 에셋에 값이 그대로 박혀 있었는데(변수 바인딩 없음) 같은 #FF5454 라 토큰을 나눠 쓴다.
+ */
+export const heart = {
+  filled: '#FF5454',
+  empty: defaultColor.gray,
+};
+
 export const colors = {
+  /** Figma 5726:3281은 text/primary가 아닌 순수 검정을 사용한다. */
+  inferno: { instruction: '#000000' },
   brown,
   yellow,
   pink,
+  heart,
   state,
   text,
   default: defaultColor,
