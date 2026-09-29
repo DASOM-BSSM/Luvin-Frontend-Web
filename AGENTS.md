@@ -36,6 +36,14 @@ This repository is `Luvin-Frontend-Web` — a fork of `luvin-frontend-v2` (the E
   - Modules that already no-op or are guarded on web (`expo-screen-orientation` in `use-landscape-routes.ts`, NativeWind `colorScheme.set`) need no swap
 - Check a new library's web support before adding it; if it has none, it needs a `.web.ts` counterpart in the same change
 
+## NativeWind on web — `className` only works on registered components
+
+- On web, NativeWind turns `className` into CSS classes **only for components registered with `cssInterop`** — anything else silently drops `className` (no error, the element just loses its layout/colour)
+- Reanimated `Animated.View` is registered for web only in `src/lib/animated-interop.web.ts` (imported once in `_layout.tsx`); native keeps the no-op `animated-interop.ts` because cssInterop breaks `useAnimatedStyle` merging there (`PlayerSprite.tsx`)
+- Using `className` on another third-party or animated component (`Animated.Text`, `Animated.Image`, a library view)? Register it in `animated-interop.web.ts`, or wrap it with `cssInterop` the way `BreadCharacter.tsx` wraps `expo-image`
+- An `absolute` element with no width shrinks to its content on web (Yoga differs). If it must match a sibling's box — e.g. text-stroke copies in `ok-mallang-b-text.tsx` — give it both `left` and `right`
+- Verify layouts at a real mobile viewport (DevTools device mode). A desktop window cannot shrink below ~500px, so a "402px" desktop window looks like overflow when it is not
+
 ## Native build (inherited)
 
 - This project uses **`expo-dev-client` with native code** — not Expo Go

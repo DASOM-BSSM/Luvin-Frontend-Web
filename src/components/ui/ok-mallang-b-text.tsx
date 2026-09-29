@@ -53,9 +53,18 @@ export default function OkMallangBText({
       {STROKE_DIRECTIONS.map(([dx, dy]) => (
         <RNText
           key={`${dx}-${dy}`}
+          // left 와 함께 right 도 줘서 복제본 폭을 본문(아래 fill Text)과 똑같이 고정한다. 폭이 없으면
+          // 웹에서는 absolute 요소가 제 내용 폭으로 줄어들어 줄바꿈 위치와 가운데 정렬 기준이 본문과
+          // 달라진다 — `Choose\nYour Mode` 가 복제본만 `Your / Mode` 로 한 줄 더 내려가 겹쳐 보였다.
           style={[
             baseStyle,
-            { position: 'absolute', left: dx * strokeWidth, top: dy * strokeWidth, color: stroke },
+            {
+              position: 'absolute',
+              left: dx * strokeWidth,
+              right: -dx * strokeWidth,
+              top: dy * strokeWidth,
+              color: stroke,
+            },
           ]}
         >
           {children}
