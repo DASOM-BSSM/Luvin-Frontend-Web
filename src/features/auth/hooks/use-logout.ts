@@ -1,7 +1,7 @@
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useMutation } from '@tanstack/react-query';
 
 import { logout } from '@/src/features/auth/api/auth';
+import { signOutGoogle } from '@/src/features/auth/lib/google-auth';
 import { clearAccessToken } from '@/src/features/auth/lib/token-storage';
 import { useAuthStore } from '@/src/features/auth/store/auth-store';
 import { useBreadStore } from '@/src/features/bread/store/bread-store';
@@ -23,7 +23,7 @@ export default function useLogout() {
       try {
         await logout();
       } finally {
-        await GoogleSignin.signOut();
+        await signOutGoogle();
         await clearAccessToken();
       }
     },
