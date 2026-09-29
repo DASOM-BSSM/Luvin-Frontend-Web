@@ -3,38 +3,39 @@
     "name": "luvin-frontend-v2",
     "slug": "luvin-frontend-v2",
     "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "orientation": "default",
     "scheme": "luvinfrontendv2",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.anonymous.luvinfrontendv2"
+      "bundleIdentifier": "com.dasom.luvinapp"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
-      },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.luvinfrontendv2"
+      "package": "com.dasom.luvinapp"
     },
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": "./assets/images/logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#208AEF"
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
