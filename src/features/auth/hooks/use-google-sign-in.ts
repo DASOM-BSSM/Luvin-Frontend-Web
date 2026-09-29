@@ -1,7 +1,7 @@
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useMutation } from '@tanstack/react-query';
 
 import { googleLogin } from '@/src/features/auth/api/auth';
+import { requestGoogleIdToken } from '@/src/features/auth/lib/google-auth';
 import { setAccessToken } from '@/src/features/auth/lib/token-storage';
 import { useAuthStore } from '@/src/features/auth/store/auth-store';
 import { useBreadStore } from '@/src/features/bread/store/bread-store';
@@ -13,22 +13,20 @@ import queryClient from '@/src/lib/query-client';
  * 온보딩의 "로그인 하기" 버튼이 쓰는 훅. 네이티브 구글 로그인 → 서버 로그인(§12)까지
  * 한 번에 처리한다. 사용자가 구글 로그인 창에서 취소한 경우는 에러가 아니라 그냥
  * `null` 을 돌려준다 — 화면이 에러 문구를 띄우지 않게 하기 위함.
+ *
+ * idToken 을 얻는 방법만 플랫폼마다 다르다(`google-auth.ts` / 웹은 팝업 `google-auth.web.ts`).
+ * 웹은 팝업 차단을 피하려고 클릭 직후 곧바로 팝업을 열어야 하므로, `requestGoogleIdToken()`
+ * 앞에 다른 `await` 를 두지 않는다.
  */
 export default function useGoogleSignIn() {
   const setSession = useAuthStore((state) => state.setSession);
 
   return useMutation({
     mutationFn: async () => {
-      await GoogleSignin.hasPlayServices();
-      const result = await GoogleSignin.signIn();
+      const idToken = await requestGoogleIdToken();
 
-      if (result.type === 'cancelled') {
-        return null;
-      }
-
-      const { idToken } = result.data;
       if (!idToken) {
-        throw new Error('구글 로그인에서 idToken을 받지 못했습니다.');
+        return null;
       }
 
       return googleLogin(idToken);

@@ -2,7 +2,9 @@
 
 Luvin is a mobile-based bread-themed AI dating simulation app. The core concept is **"Love is all about timing"** — users' romantic tendencies are analyzed and expressed as bread types, and an AI avatar ("분신") that mirrors the user's personality participates in a dating simulation.
 
-This repository is `luvin-frontend-v2` — a fresh Expo SDK 57 rewrite. Most of the app is not implemented yet, so **follow the conventions in this file when creating new files rather than inferring them from the (nearly empty) codebase.**
+This repository is `Luvin-Frontend-Web` — a fork of `luvin-frontend-v2` (the Expo SDK 57 native app) that is **built for the web with `react-native-web` and deployed to Vercel as a web app**. The shared code still compiles for iOS/Android, but **the web build is the shipping target of this repo**. Follow the conventions in this file when creating new files rather than inferring them from the codebase.
+
+> **Fork note**: GitHub pre-selects the parent repo (`DASOM-BSSM/luvin-frontend-v2`) as the PR base for a fork. When opening a PR, always set **base repository = `DASOM-BSSM/Luvin-Frontend-Web`**.
 
 ---
 
@@ -18,9 +20,24 @@ This repository is `luvin-frontend-v2` — a fresh Expo SDK 57 rewrite. Most of 
 
 # 1. Platform Principles
 
-- **Target platforms**: iOS and Android
-- Ensure identical UX, interface, and behavior on both platforms
+- **Primary target: Web** (mobile browsers first), built with `react-native-web` and deployed to **Vercel**
+- The native iOS/Android build is inherited from `luvin-frontend-v2` — keep it compiling, but do not add native-only features to this repo
 - Avoid platform-specific styles or logic that cause visual inconsistencies unless strictly necessary (e.g. SafeArea padding)
+
+## Web build rules
+
+- Run locally with `pnpm web`; build with `pnpm expo export -p web` (output: `dist/`)
+- `app.json` → `web.output` is `"static"`: every route is **pre-rendered in Node at build time**, where `window`, `document`, and `localStorage` do not exist
+  - Never touch browser-only globals at module top level or during render without a `typeof window === 'undefined'` guard
+- **Native-only modules must be swapped with a platform file, not with `if (Platform.OS === 'web')` branches scattered across screens**
+  - Metro resolves `foo.web.ts` before `foo.ts` for the web bundle. Put the web implementation in a sibling `.web.ts` file that exports the **exact same API**, so call sites never change
+  - Current swaps: `src/lib/storage.web.ts` (MMKV → `localStorage`), `src/features/auth/lib/token-storage.web.ts` (SecureStore → `localStorage`, §12), `src/features/auth/lib/google-auth.web.ts` (Google Sign-In SDK → OAuth popup, §12)
+  - Swap the **smallest platform-dependent piece** (a `lib/` module), not the hook or screen that uses it — shared logic such as post-login cache clearing must exist once
+  - Modules that already no-op or are guarded on web (`expo-screen-orientation` in `use-landscape-routes.ts`, NativeWind `colorScheme.set`) need no swap
+- Check a new library's web support before adding it; if it has none, it needs a `.web.ts` counterpart in the same change
+
+## Native build (inherited)
+
 - This project uses **`expo-dev-client` with native code** — not Expo Go
   - Run with `pnpm ios` / `pnpm android` (`expo run:*`), which prebuild (if needed) and build the native app
   - `pnpm start` only starts the bundler; it requires an already-installed dev client build
@@ -37,13 +54,14 @@ This repository is `luvin-frontend-v2` — a fresh Expo SDK 57 rewrite. Most of 
 
 | Category         | Library                               | Notes                                            |
 | ---------------- | ------------------------------------- | ------------------------------------------------ |
-| Framework        | `expo` (SDK 57)                       | Dev client + prebuilt native projects            |
+| Framework        | `expo` (SDK 57)                       | Web export via `react-native-web`                |
+| Hosting          | Vercel                                | `vercel.json` rewrites proxy the API (§4, §19)   |
 | Routing          | `expo-router`                         | File-based routing under `src/app/`              |
 | Runtime          | `react-native`, `react`, `typescript` | RN 0.86 / React 19 / TS 6 — check `package.json` |
 | Styling          | `nativewind` (NativeWind v4)          | Tailwind CSS v3 compatible                       |
 | State Management | `zustand`                             | Global in-memory state                           |
 | Async State      | `@tanstack/react-query`               | Data fetching and caching (see §11)              |
-| Local Storage    | `react-native-mmkv`                   | **Non-sensitive** persisted key-value only (§12) |
+| Local Storage    | `react-native-mmkv` / `localStorage`  | Native / web — via `src/lib/storage` only (§12)  |
 | Animation        | `react-native-reanimated` v4          | Requires `react-native-worklets`                 |
 | Native UI        | `@expo/ui`, `expo-glass-effect`       | Prefer these over reimplementing native looks    |
 | Deep Linking     | `expo-linking`                        | Scheme `luvinfrontendv2` (§13)                   |
@@ -55,10 +73,8 @@ Do NOT assume any of these exist, and do NOT install them on your own initiative
 
 | Need                  | Intended choice                                                     | Section |
 | --------------------- | ------------------------------------------------------------------- | ------- |
-| HTTP client           | `axios` or plain `fetch` — undecided                                | §11     |
 | Lint / format / hooks | `eslint` + `eslint-config-expo`, `prettier`, `husky`, `lint-staged` | §5      |
 | Unit / e2e tests      | `jest-expo` + `@testing-library/react-native`, Maestro              | §6      |
-| Secure token storage  | `expo-secure-store`                                                 | §12     |
 | Push notifications    | `expo-notifications`                                                | §13     |
 | Crash reporting       | `@sentry/react-native`                                              | §14     |
 | Analytics             | none chosen                                                         | §14     |
@@ -94,6 +110,14 @@ Do NOT assume any of these exist, and do NOT install them on your own initiative
 - **`EXPO_PUBLIC_` values are embedded in the app bundle and are readable by anyone** — never put a secret, private key, or OAuth client secret there
 - `.env.example` currently contains a stale `VITE_API_URL` key — this is a leftover and is NOT used; ask before renaming or repurposing it
 - Add any new key to `.env.example` (with an empty or placeholder value) in the same change
+
+## Vercel
+
+- `.env.local` is gitignored, so **Vercel never sees it** — set every `EXPO_PUBLIC_*` key in Vercel → Project Settings → Environment Variables
+- `EXPO_PUBLIC_*` values are inlined **at build time**: after changing one in Vercel, redeploy — a running deployment does not pick it up
+- Web builds call the API through the same-origin `/api/*` rewrite in `vercel.json` (avoids CORS, §19), so **leave `EXPO_PUBLIC_API_URL` empty in Vercel**. The backend host lives in `vercel.json`'s rewrite `destination`, not in an env var
+- Vercel build settings live in `vercel.json` (install `pnpm install --frozen-lockfile`, build `pnpm expo export -p web`, output `dist`, `cleanUrls: true`) — change them there, not in the dashboard
+- `cleanUrls` is required: static export writes `onboarding.html`, and the OAuth redirect URI is `/onboarding` without the extension (§12)
 
 ---
 
@@ -133,10 +157,11 @@ pnpm tsc --noEmit
 
 **Explicit decision for v2 MVP: there is no automated test suite, and that is deliberate — not an oversight.**
 
-Rationale: pre-launch, every screen is still being derived from Figma and churns constantly, so UI tests would be rewritten more often than they would catch anything. The safety net is instead: `strict` TypeScript + lint (§5) + manual verification on both platforms.
+Rationale: pre-launch, every screen is still being derived from Figma and churns constantly, so UI tests would be rewritten more often than they would catch anything. The safety net is instead: `strict` TypeScript + lint (§5) + manual verification in the browser.
 
 - Do NOT add `jest`, `jest-expo`, `@testing-library/react-native`, Detox, or Maestro without explicit approval — adding a test framework is a project decision, not a task detail
-- **Manual verification is mandatory**: check any UI change on both iOS and Android before calling it done, and say which platforms you actually verified. If you could not run the app, say so plainly instead of implying it was verified
+- **Manual verification is mandatory**: check any UI change in a mobile-sized browser viewport (Chrome DevTools device mode; iOS Safari and Android Chrome when possible) before calling it done, and say which browsers you actually verified. If you could not run the app, say so plainly instead of implying it was verified
+- A change that touches module-level code, a store, or a `.web.ts` file must also pass `pnpm expo export -p web` — static pre-rendering (§1) fails there, not in `pnpm web`
 
 ## Write testable code now, so tests are cheap later
 
@@ -267,14 +292,15 @@ luvin-frontend-v2/
 │   │   │   ├── api/
 │   │   │   ├── components/
 │   │   │   ├── hooks/
-│   │   │   ├── lib/token-storage.ts   # ONLY module touching SecureStore (§12)
+│   │   │   ├── lib/token-storage.ts   # ONLY module touching token storage (§12)
+│   │   │   ├── lib/token-storage.web.ts  # Web version (localStorage)
 │   │   │   ├── store/
 │   │   │   ├── types/
 │   │   │   └── utils/
 │   │   ├── notifications/        # Push + deep link handling (§13)
 │   │   └── <feature>/            # Same subfolder shape as auth/
 │   │
-│   ├── lib/                      # query-client.ts, storage.ts (MMKV wrapper), sentry.ts
+│   ├── lib/                      # query-client.ts, storage.ts (MMKV) + storage.web.ts (localStorage), sentry.ts
 │   ├── providers/                # ONLY providers with real logic (query, toast) — see note
 │   └── types/                    # Global TypeScript types
 │
@@ -287,6 +313,7 @@ luvin-frontend-v2/
 ├── CLAUDE.md                     # Includes AGENTS.md
 ├── CONTRIBUTING.md               # Commit / branch conventions
 ├── app.json
+├── vercel.json                   # Vercel rewrites: `/api/*` → backend proxy (§19)
 ├── global.css                    # Tailwind entry (root level, per metro.config.js)
 ├── tailwind.config.js            # Contains design tokens
 ├── package.json
@@ -397,18 +424,32 @@ Google OAuth only; the first login auto-creates the account, so there is no sepa
 
 | Data                                                       | Storage                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
-| Access token, refresh token, OAuth code                    | **`expo-secure-store` only** (iOS Keychain / Android Keystore) |
+| Access token, refresh token, OAuth code                    | `token-storage.ts` → native: `expo-secure-store` / web: `localStorage` |
 | Session status, user profile, bread type                   | In-memory Zustand store (`src/features/auth/store/`)           |
-| Non-sensitive prefs (onboarding seen, survey draft, theme) | MMKV wrapper in `src/lib/storage.ts`                           |
+| Non-sensitive prefs (onboarding seen, survey draft, theme) | `src/lib/storage.ts` (MMKV) / `src/lib/storage.web.ts` (`localStorage`) |
 
-- **Never** put a token in MMKV, in a Zustand `persist` store, in the query cache, in an `.env` file, in a log, or in a URL / query parameter
-- `src/features/auth/lib/token-storage.ts` is the **only** module that touches SecureStore — everything else calls it. Do not read SecureStore from a component
+- **Web decision (accepted trade-off)**: the web build keeps the access token in `localStorage` via `src/features/auth/lib/token-storage.web.ts`. Any XSS can read it, so never render untrusted HTML (`dangerouslySetInnerHTML`), never `eval` server data, and do not add third-party `<script>` tags. Moving to an httpOnly cookie needs backend changes — ask before attempting it
+- Tokens use their own key in `token-storage.web.ts`; they never go through the generic `src/lib/storage` wrapper
+- **Never** put a token in the generic storage wrapper, in a Zustand `persist` store, in the query cache, in an `.env` file, in a log, or in a URL / query parameter
+- `src/features/auth/lib/token-storage.ts` (and its `.web.ts` sibling) is the **only** module that touches token storage — everything else calls it. Do not read SecureStore or the token key from a component
 - One refresh path in the HTTP layer (single-flight — concurrent 401s must not trigger parallel refreshes)
 - On refresh failure: clear SecureStore, reset the auth store and query cache, and route back to onboarding
 - Redact tokens from crash reports and never include them in analytics events (§14)
 - Build OAuth redirect URIs with `expo-linking`'s `createURL()` — do not hardcode them (§13)
 
-**`expo-secure-store` is not installed.** When auth work starts: `pnpm expo install expo-secure-store` (native rebuild required) — ask first.
+## Google login on web
+
+`@react-native-google-signin/google-signin` has no web implementation (web support is sponsor-only), and Google's own web button (`renderButton`) would replace the Figma button. So only the platform-dependent part is split:
+
+- `src/features/auth/lib/google-auth.ts` / `.web.ts` export `configureGoogleAuth`, `requestGoogleIdToken`, `signOutGoogle`. The hooks (`use-google-sign-in.ts`, `use-logout.ts`) are shared and call these
+- Web: the Figma button opens a **popup** to Google's OAuth endpoint (`response_type=id_token`, with `state` + `nonce` checks) via `expo-web-browser`. Google redirects the popup to `/onboarding`; `configureGoogleAuth()` (called at module scope in `_layout.tsx`) runs `maybeCompleteAuthSession()` there and hands the URL back to the opener
+- `/onboarding` is therefore also the **OAuth redirect URI** — renaming that route breaks web login (§13)
+- Never put an `await` before `requestGoogleIdToken()` in the click path — mobile browsers block popups not opened directly from user input
+
+Google Cloud Console → the **Web** OAuth client (same ID as `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`) must list, for every origin that serves the app (Vercel production, preview domains in use, `http://localhost:8081`):
+
+- **Authorized JavaScript origins**: `https://<domain>`
+- **Authorized redirect URIs**: `https://<domain>/onboarding`
 
 ---
 
@@ -496,7 +537,9 @@ When it is implemented, follow these:
 - Do not ship a screen that handles only the success path (§11)
 - Do not use `Alert.alert` for validation or success feedback — use a toast (§11)
 - Do not surface raw server errors, stack traces, or status codes to the user (§11)
-- Do not store tokens or secrets in MMKV, `persist`ed Zustand, `.env`, or logs (§12)
+- Do not store tokens or secrets in the generic `src/lib/storage` wrapper, `persist`ed Zustand, `.env`, or logs (§12)
+- Do not access `window` / `document` / `localStorage` at module top level or during render without a server guard — static pre-rendering runs in Node (§1)
+- Do not branch on `Platform.OS === 'web'` inside screens to swap a native module — add a `.web.ts` sibling instead (§1)
 - Do not edit `ios/` or `android/` by hand — they are regenerated by prebuild (§1)
 - Do not install lint / test / crash-reporting / notification packages on your own initiative (§2)
 - Do not claim a change was verified on device if you did not run it (§6)
@@ -533,9 +576,16 @@ See `CONTRIBUTING.md` for the full table. Summary:
 
 ## HTTP Client
 
-- **`axios` is the confirmed choice.** This supersedes the "HTTP client: axios or fetch — undecided" entry in §2
-- Create exactly one axios instance in `src/lib/api-client.ts` — never call `axios.create()` from a component or feature file
+- **`axios` is the confirmed choice.**
+- Create exactly one axios instance in `src/lib/http-client.ts` — never call `axios.create()` from a component or feature file
 - `baseURL` comes from the `EXPO_PUBLIC_API_URL` environment variable (add the key to `.env.example` per §4)
+
+## Web: same-origin proxy instead of CORS
+
+- On web, requests go to the **same origin** (`/api/...`) and Vercel forwards them to the backend via the rewrite in `vercel.json`. The browser never makes a cross-origin call, so the backend needs no CORS config
+- This works because every API function already calls a path starting with `/api/` — keep it that way. A path outside `/api/` will not be proxied
+- `EXPO_PUBLIC_API_URL` is **empty on Vercel** (relative `baseURL`). Locally, `pnpm web` has no Vercel rewrite, so either set `EXPO_PUBLIC_API_URL` to the backend (the backend must then allow `http://localhost:8081`) or run through `vercel dev`
+- Changing the backend host = editing the rewrite `destination` in `vercel.json` and redeploying
 - The auth header is attached automatically in a request interceptor, but the token value itself must only be read through `src/features/auth/lib/token-storage.ts` — no exception for interceptor code (§12)
 - On a 401, follow the single-flight refresh rule already defined in §12; implement it inside the interceptor
 

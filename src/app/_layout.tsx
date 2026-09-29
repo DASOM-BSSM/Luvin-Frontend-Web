@@ -1,6 +1,5 @@
 import "@/global.css";
 
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -11,6 +10,7 @@ import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import theme from "@/src/constants/theme";
+import { configureGoogleAuth } from "@/src/features/auth/lib/google-auth";
 import { getAccessToken } from "@/src/features/auth/lib/token-storage";
 import { useAuthStore } from "@/src/features/auth/store/auth-store";
 import useLandscapeRoutes from "@/src/hooks/use-landscape-routes";
@@ -21,10 +21,9 @@ SplashScreen.preventAutoHideAsync();
 
 // 구글 로그인도 마찬가지로 앱 시작 시 한 번만 설정한다(§12). 클라이언트 ID 는 비밀값이
 // 아니라 EXPO_PUBLIC_ 로 노출해도 된다(§4) — 실제 인가는 서버가 accessToken 발급으로 한다.
-GoogleSignin.configure({
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// 웹에서는 SDK 설정 대신, 이 창이 로그인 팝업의 리다이렉트라면 결과를 부모 창에 넘긴다
+// (`google-auth.web.ts`).
+configureGoogleAuth();
 
 if (__DEV__) {
   // 클라이언트 ID 는 비밀값이 아니라 그대로 찍어도 된다(§4). 번들에 실제로 들어간 값이
