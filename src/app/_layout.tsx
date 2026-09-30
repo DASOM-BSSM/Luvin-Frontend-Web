@@ -61,10 +61,11 @@ export default function RootLayout() {
 
   // PC 브라우저에서도 모바일 레이아웃을 유지하도록 웹에서만(`web:`) 폭을 제한하고 가운데 정렬한다.
   // 가로 전용 라우트(러빈지옥 에피소드)는 세로 폭 기준이 아니므로 제한하지 않는다.
+  // 양옆 여백(brown-200)과 앱 영역(default-bg)의 색을 달리해 열의 경계가 보이게 한다.
   const pathname = usePathname();
   const frameClassName = isLandscapeRoute(pathname)
-    ? "w-full flex-1"
-    : "w-full flex-1 web:max-w-[402px]";
+    ? "w-full flex-1 bg-default-bg"
+    : "w-full flex-1 bg-default-bg web:max-w-[402px]";
 
   useEffect(() => {
     // 폰트 로드에 실패해도 스플래시에 갇히지 않게 error 도 함께 본다.
@@ -95,7 +96,7 @@ export default function RootLayout() {
     // react-native-gesture-handler는 GestureDetector/Gesture API를 쓰려면 앱 루트가
     // 이 안에 있어야 한다(러빈지옥 미니게임에서 처음 씀 — 이전엔 gesture-handler가
     // 설치만 되어 있고 실제로 쓰이지 않아 필요 없었다).
-    <View className="flex-1 items-center bg-default-bg">
+    <View className="flex-1 items-center bg-brown-200">
       <View className={frameClassName}>
         <GestureHandlerRootView style={{ flex: 1 }}>
         <QueryProvider>
