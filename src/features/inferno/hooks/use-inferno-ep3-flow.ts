@@ -71,7 +71,12 @@ export default function useInfernoEp3Flow(
   }
 
   // 두 미니게임이 승패 문구·다음 동작을 그대로 공유해서 매번 무작위로 하나를 고른다.
+  //
+  // isLastPageTyped 를 내려 위 effect 의 자동 모달 타이머를 취소한다 — 안 그러면 "다음" 으로
+  // 모달을 먼저 열고 GAME_MODAL_DELAY_MS 안에 게임을 시작했을 때, 뒤늦게 타이머가 모달을 한 번
+  // 더 띄우고, 거기서 "게임하기"를 다시 누르면 게임이 새로 뽑혀 야바위가 카드 뒤집기로 바뀌었다.
   function handleGameStart() {
+    setIsLastPageTyped(false);
     setIsGamePromptOpen(false);
     setSelectedGame(Math.random() < 0.5 ? 'shell' : 'cardflip');
     setIsGameOpen(true);
@@ -116,7 +121,9 @@ export default function useInfernoEp3Flow(
     setPageIndex((index) => index + 1);
   }
 
+  // 모달을 직접 열었으니 자동으로 열 타이머는 필요 없다(handleGameStart 주석 참고).
   function showGamePrompt() {
+    setIsLastPageTyped(false);
     setIsGamePromptOpen(true);
   }
 
