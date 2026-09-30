@@ -1,5 +1,5 @@
 import { Fragment, useEffect } from 'react';
-import { Image as RNImage, View } from 'react-native';
+import { View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -60,9 +60,11 @@ interface LaneSlotViewProps {
 const RAIL_SLEEPER_COUNT = 10;
 const ROAD_DASH_FRACTIONS = [0.2, 0.5, 0.8];
 
-/** 기차 전용 바게트 스프라이트의 실제 파일 URI. SVG `<Image>`는 RN `require()` 숫자 id가
- * 아니라 URI 문자열을 받으므로 `resolveAssetSource`로 변환해 모듈 로드 시점에 한 번만 구한다. */
-const BAGUETTE_URI = RNImage.resolveAssetSource(require('@/src/assets/images/dough_baguette.png')).uri;
+/** 기차 전용 바게트 스프라이트. SVG `<Image>`의 `href`는 `require()` 숫자 id를 그대로 받아
+ * react-native-svg가 플랫폼별로 URI를 풀어준다(네이티브: `Image.resolveAssetSource`, 웹:
+ * 자체 `resolveAssetUri`). 여기서 RN `Image.resolveAssetSource`를 직접 부르면 안 된다 —
+ * react-native-web 의 Image 에는 그 함수가 없어서, 모듈 로드 순간 웹 앱 전체가 죽었다. */
+const BAGUETTE_SOURCE = require('@/src/assets/images/dough_baguette.png');
 
 const AnimatedG = Animated.createAnimatedComponent(G);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -137,7 +139,7 @@ function BaguetteTrainSvg({ lane, laneTop }: { lane: LaneDefinition; laneTop: nu
         return (
           <SvgImage
             key={i}
-            href={BAGUETTE_URI}
+            href={BAGUETTE_SOURCE}
             x={carX}
             y={0}
             width={RAIL_TRAIN_CAR_SIZE}
