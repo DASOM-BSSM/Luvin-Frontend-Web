@@ -88,10 +88,10 @@ export default function InfernoEp5Screen() {
     router.push('/inferno/ep0');
   }
 
-  // "시즌 끝내기": 새로 시작하지 않고 허브(오븐 화면)로만 돌아간다.
+  // "시즌 끝내기": 새로 시작하지 않고 ep1~4 와 같이 홈으로 돌아간다.
   function handleEndSeasonPress() {
     completeEpisode(EPISODE_ORDER);
-    router.push('/oven');
+    router.dismissTo('/');
   }
 
   // summary/myProfile 을 매개변수로 받는 이유: 위 가드로 좁혀진 타입이 중첩 함수 클로저

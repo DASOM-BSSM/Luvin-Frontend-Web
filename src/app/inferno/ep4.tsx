@@ -46,16 +46,14 @@ export default function InfernoEp4Screen() {
     router.dismissTo('/');
   }
 
-  // 완료 쪽지의 "에피소드 끝내기". 회차를 끝내고 오븐으로 보낸다.
+  // 완료 쪽지의 "에피소드 끝내기". 회차를 끝내고 ep1~3 과 같이 홈으로 돌려보낸다.
   //
-  // 쪽지를 먼저 닫는 이유: 이 화면은 dismiss 가 아니라 push 로 오븐에게 자리를 넘겨서
-  // 화면 자체가 언마운트되지 않는다. RN `Modal` 은 내비게이션 스택과 무관하게 항상
-  // 최상단에 그려지는 네이티브 오버레이라, 닫지 않고 넘어가면 오븐 화면 위에 그대로
-  // 떠 있는다.
+  // 쪽지를 먼저 닫는 이유: RN `Modal` 은 내비게이션 스택과 무관하게 항상 최상단에 그려지는
+  // 네이티브 오버레이라, 화면이 언마운트되기 전에 닫지 않으면 다음 화면 위에 잠깐 남을 수 있다.
   function finishEpisode() {
     flow.handleModalClose();
     completeEpisode(EPISODE_ORDER);
-    router.push('/oven');
+    router.dismissTo('/');
   }
 
   // rebake 는 일부러 뺀다(위 주석 참고) — matchReveal/personalChatPages 만 갖추면 되고,
