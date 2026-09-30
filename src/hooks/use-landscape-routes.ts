@@ -11,6 +11,11 @@ import { Platform } from 'react-native';
  */
 const LANDSCAPE_PREFIXES = ['/inferno'];
 
+/** 경로가 가로 전용 라우트인지 — 훅과 웹 폭 제한 레이아웃이 같은 기준을 쓰도록 분리했다. */
+export function isLandscapeRoute(pathname: string) {
+  return LANDSCAPE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 /**
  * 지금 보고 있는 경로에 맞춰 화면 방향과 상태바를 맞춘다. 루트 레이아웃에서 한 번만 부른다.
  *
@@ -34,7 +39,7 @@ export default function useLandscapeRoutes() {
       return;
     }
 
-    const isLandscape = LANDSCAPE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    const isLandscape = isLandscapeRoute(pathname);
 
     void ScreenOrientation.lockAsync(
       isLandscape

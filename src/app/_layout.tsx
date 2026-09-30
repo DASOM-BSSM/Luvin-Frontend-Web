@@ -3,19 +3,19 @@ import "@/global.css";
 import "@/src/lib/animated-interop";
 
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { colorScheme } from "nativewind";
 import { useEffect } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import theme from "@/src/constants/theme";
 import { configureGoogleAuth } from "@/src/features/auth/lib/google-auth";
 import { getAccessToken } from "@/src/features/auth/lib/token-storage";
 import { useAuthStore } from "@/src/features/auth/store/auth-store";
-import useLandscapeRoutes from "@/src/hooks/use-landscape-routes";
+import useLandscapeRoutes, { isLandscapeRoute } from "@/src/hooks/use-landscape-routes";
 import QueryProvider from "@/src/providers/query-provider";
 
 // 컴포넌트 밖(모듈 스코프)에서 호출해야 한다. 훅 안에서 부르면 이미 늦은 경우가 있다.
@@ -59,6 +59,13 @@ export default function RootLayout() {
   // app.json 의 orientation 이 "default" 인 것도 그래서다(자세한 이유는 훅 주석 참고).
   useLandscapeRoutes();
 
+  // PC 브라우저에서도 모바일 레이아웃을 유지하도록 웹에서만(`web:`) 폭을 제한하고 가운데 정렬한다.
+  // 가로 전용 라우트(러빈지옥 에피소드)는 세로 폭 기준이 아니므로 제한하지 않는다.
+  const pathname = usePathname();
+  const frameClassName = isLandscapeRoute(pathname)
+    ? "w-full flex-1"
+    : "w-full flex-1 web:max-w-[402px]";
+
   useEffect(() => {
     // 폰트 로드에 실패해도 스플래시에 갇히지 않게 error 도 함께 본다.
     if (loaded || error) {
@@ -88,19 +95,23 @@ export default function RootLayout() {
     // react-native-gesture-handler는 GestureDetector/Gesture API를 쓰려면 앱 루트가
     // 이 안에 있어야 한다(러빈지옥 미니게임에서 처음 씀 — 이전엔 gesture-handler가
     // 설치만 되어 있고 실제로 쓰이지 않아 필요 없었다).
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryProvider>
-        {/* 밝은 배경 위 어두운 글씨. */}
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            // 화면 헤더는 각 시안이 직접 그리므로 네비게이터 헤더는 쓰지 않는다.
-            headerShown: false,
-            // 전환 중 흰색이 비치지 않도록 기본 배경을 토큰 색으로 맞춘다.
-            contentStyle: { backgroundColor: theme.colors.default.bg },
-          }}
-        />
-      </QueryProvider>
-    </GestureHandlerRootView>
+    <View className="flex-1 items-center bg-default-bg">
+      <View className={frameClassName}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryProvider>
+          {/* 밝은 배경 위 어두운 글씨. */}
+          <StatusBar style="dark" />
+          <Stack
+            screenOptions={{
+              // 화면 헤더는 각 시안이 직접 그리므로 네비게이터 헤더는 쓰지 않는다.
+              headerShown: false,
+              // 전환 중 흰색이 비치지 않도록 기본 배경을 토큰 색으로 맞춘다.
+              contentStyle: { backgroundColor: theme.colors.default.bg },
+            }}
+          />
+        </QueryProvider>
+        </GestureHandlerRootView>
+      </View>
+    </View>
   );
 }
