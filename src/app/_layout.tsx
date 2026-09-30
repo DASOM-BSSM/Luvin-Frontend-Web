@@ -59,14 +59,16 @@ export default function RootLayout() {
   // app.json 의 orientation 이 "default" 인 것도 그래서다(자세한 이유는 훅 주석 참고).
   useLandscapeRoutes();
 
-  // PC 브라우저에서도 모바일 화면(20:9, 폭 402px 기준)을 유지하도록 웹의 넓은 화면(`web:md:`)에서만
-  // 앱 영역을 세로 9:20 비율로 고정하고 가운데 정렬한다. 창이 낮으면 높이에 맞춰 함께 줄어든다.
-  // 실제 모바일 브라우저(md 미만)는 화면을 그대로 채워야 하므로 비율을 강제하지 않는다.
-  // 가로 전용 라우트(러빈지옥 에피소드)는 세로 비율 기준이 아니므로 제한하지 않는다.
+  // PC 브라우저에서도 모바일 화면 비율(20:9)을 유지하도록 웹의 넓은 화면에서만(`web:md:`/`web:lg:`)
+  // 앱 영역의 비율을 고정하고 가운데 정렬한다. 창이 작으면 창에 맞춰 함께 줄어든다.
+  // - 세로 화면: 폭:높이 = 9:20, 폭 402px(Figma 폭)까지. 폰 모양 열 양옆은 여백.
+  // - 가로 전용 라우트(러빈지옥 에피소드): 폭:높이 = 20:9, 높이 402px(폭 893px)까지.
+  //   가로로 든 폰도 md(768px)를 넘으므로 폰이 끼어들지 않게 lg(1024px)부터 적용한다.
+  // 실제 모바일 브라우저는 화면을 그대로 채워야 하므로 비율을 강제하지 않는다.
   // 양옆 여백(brown-200)과 앱 영역(default-bg)의 색을 달리해 경계가 보이게 한다.
   const pathname = usePathname();
   const frameClassName = isLandscapeRoute(pathname)
-    ? "w-full flex-1 bg-default-bg"
+    ? "w-full flex-1 bg-default-bg web:lg:w-[min(100%,calc(100vh*20/9),893px)] web:lg:flex-none web:lg:aspect-[20/9]"
     : "w-full flex-1 bg-default-bg web:md:h-[min(100%,893px)] web:md:w-auto web:md:flex-none web:md:aspect-[9/20]";
 
   useEffect(() => {
