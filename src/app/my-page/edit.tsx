@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import AngleUpIcon from '@/src/assets/icons/AngleUpIcon';
 import ProfileAvatarPhoto from '@/src/assets/images/ProfileAvatarPhoto';
 import BottomNav from '@/src/components/bottom-nav';
 import Button from '@/src/components/ui/button';
+import ConfirmModal from '@/src/components/ui/confirm-modal';
 import Screen from '@/src/components/ui/screen';
 import Text from '@/src/components/ui/text';
 import useLogout from '@/src/features/auth/hooks/use-logout';
@@ -15,6 +16,7 @@ import { useProfileSettingsStore } from '@/src/features/my-page/store/profile-se
 import type { Gender } from '@/src/features/my-page/types';
 import { useTokenStore } from '@/src/features/luvin-hell/store/token-store';
 import useTokenBalance from '@/src/features/tokens/hooks/use-token-balance';
+import useDeleteAccount from '@/src/features/user/hooks/use-delete-account';
 import useMyProfile from '@/src/features/user/hooks/use-my-profile';
 import useUpdateProfile from '@/src/features/user/hooks/use-update-profile';
 
@@ -30,6 +32,8 @@ export default function MyPageEditScreen() {
   const nickname = useProfileSettingsStore((state) => state.nickname);
   const setNickname = useProfileSettingsStore((state) => state.setNickname);
   const logoutMutation = useLogout();
+  const deleteAccountMutation = useDeleteAccount();
+  const [openConfirm, setOpenConfirm] = useState<'logout' | 'withdraw' | undefined>(undefined);
   const myProfileQuery = useMyProfile();
   const updateProfileMutation = useUpdateProfile();
   useTokenBalance();
@@ -83,17 +87,32 @@ export default function MyPageEditScreen() {
     router.replace('/onboarding');
   }
 
-  // 확인 모달 없이 바로 로그아웃한다 — react-native-web 의 Alert.alert 는 아무것도 띄우지 않아서
-  // 확인창을 거치면 웹에서는 로그아웃이 영영 실행되지 않았다.
+  // 확인 모달을 거쳐서만 실행한다 — Alert.alert 는 react-native-web 에서 아무것도 띄우지 않아서
+  // 앱/웹 모두 ConfirmModal 로 묻는다.
   function handleLogoutPress() {
-    logoutMutation.mutate(undefined, { onSettled: handleLogoutSettled });
+    setOpenConfirm('logout');
   }
 
   function handleWithdrawPress() {
-    Alert.alert('계정 탈퇴', '정말 계정을 탈퇴하시겠어요? 이 작업은 되돌릴 수 없어요.', [
-      { text: '취소', style: 'cancel' },
-      { text: '탈퇴', style: 'destructive', onPress: () => router.replace('/onboarding') },
-    ]);
+    setOpenConfirm('withdraw');
+  }
+
+  function handleConfirmCancel() {
+    setOpenConfirm(undefined);
+  }
+
+  function handleLogoutConfirm() {
+    setOpenConfirm(undefined);
+    logoutMutation.mutate(undefined, { onSettled: handleLogoutSettled });
+  }
+
+  function handleWithdrawSuccess() {
+    router.replace('/onboarding');
+  }
+
+  function handleWithdrawConfirm() {
+    setOpenConfirm(undefined);
+    deleteAccountMutation.mutate(undefined, { onSuccess: handleWithdrawSuccess });
   }
 
   return (
@@ -199,17 +218,42 @@ export default function MyPageEditScreen() {
               로그아웃
             </Text>
           </Pressable>
-          <Pressable accessibilityRole="button" onPress={handleWithdrawPress}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={deleteAccountMutation.isPending}
+            onPress={handleWithdrawPress}>
             <Text variant="body-s" className="text-text-muted">
               계정 탈퇴
             </Text>
           </Pressable>
         </View>
+        {deleteAccountMutation.isError ? (
+          <Text variant="body-s" className="text-state-error">
+            계정 탈퇴에 실패했어요. 다시 시도해주세요
+          </Text>
+        ) : null}
       </ScrollView>
 
       <View className="pb-[10px]">
         <BottomNav active="none" />
       </View>
+
+      <ConfirmModal
+        visible={openConfirm === 'logout'}
+        message="정말 로그아웃 하시겠어요?"
+        confirmLabel="로그아웃"
+        isConfirmDisabled={logoutMutation.isPending}
+        onConfirm={handleLogoutConfirm}
+        onCancel={handleConfirmCancel}
+      />
+      <ConfirmModal
+        visible={openConfirm === 'withdraw'}
+        message="정말 계정을 탈퇴하시겠어요?"
+        confirmLabel="탈퇴"
+        isConfirmDisabled={deleteAccountMutation.isPending}
+        onConfirm={handleWithdrawConfirm}
+        onCancel={handleConfirmCancel}
+      />
     </Screen>
   );
 }

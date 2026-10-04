@@ -12,3 +12,8 @@ export async function getMyProfile(): Promise<UserProfile> {
 export async function updateMyProfile(input: UpdateUserProfileInput): Promise<void> {
   await httpClient.put('/api/users/me', input);
 }
+
+/** `DELETE /api/users/me`. 서버에서 이 계정과 계정에 딸린 데이터를 지운다(계정 탈퇴). */
+export async function deleteMyAccount(): Promise<void> {
+  await httpClient.delete('/api/users/me');
+}
