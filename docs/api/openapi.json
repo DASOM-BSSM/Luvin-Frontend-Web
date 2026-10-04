@@ -57,6 +57,24 @@
                         }
                     }
                 }
+            },
+            "delete": {
+                "tags": [
+                    "user-controller"
+                ],
+                "operationId": "deleteMyAccount",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/api/tokens/use": {
@@ -2076,7 +2094,7 @@
                     "success": {
                         "type": "string",
                         "minLength": 1,
-                        "pattern": "^(성공|실패)$"
+                        "pattern": "^(\uc131\uacf5|\uc2e4\ud328)$"
                     }
                 }
             },
